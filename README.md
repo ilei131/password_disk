@@ -1,4 +1,4 @@
 # PasswordDisk
-Secure password management tool
+A secure password management tool
 # Screenshot
 ![screenshot](./screenshot.png)

@@ -2489,7 +2489,6 @@ body {
   height: 100%;
   background-color: #007bff;
   border-radius: 2px;
-  transition: width 1s linear;
 }
 
 .timer-text {

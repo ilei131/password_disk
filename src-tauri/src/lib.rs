@@ -413,25 +413,25 @@ async fn delete_category(id: &str) -> Result<bool, String> {
 #[tauri::command]
 async fn generate_password(
     length: u32,
-    includeUppercase: bool,
-    includeLowercase: bool,
-    includeNumbers: bool,
-    includeSymbols: bool,
+    include_uppercase: bool,
+    include_lowercase: bool,
+    include_numbers: bool,
+    include_symbols: bool,
 ) -> Result<String, String> {
     use rand::Rng;
 
     let mut chars = Vec::new();
 
-    if includeUppercase {
+    if include_uppercase {
         chars.extend('A'..='Z');
     }
-    if includeLowercase {
+    if include_lowercase {
         chars.extend('a'..='z');
     }
-    if includeNumbers {
+    if include_numbers {
         chars.extend('0'..='9');
     }
-    if includeSymbols {
+    if include_symbols {
         chars.extend("!@#$%^&*()_+-=[]{}|;:,.<>?".chars());
     }
 
@@ -467,7 +467,7 @@ async fn generate_two_factor_code(secret: &str) -> Result<String, String> {
     // 使用标准BASE32字母表解码，忽略padding
     let decoded_secret = match BASE32.decode(normalized_secret.as_bytes()) {
         Ok(decoded) => decoded,
-        Err(e) => {
+        Err(_e) => {
             // 尝试添加padding后再解码
             let padded_secret = match normalized_secret.len() % 8 {
                 2 => format!("{}{}", normalized_secret, "======"),
@@ -487,7 +487,7 @@ async fn generate_two_factor_code(secret: &str) -> Result<String, String> {
     };
 
     // 调试信息：显示原始解码后的密钥长度
-    let original_len = decoded_secret.len();
+    let _original_len = decoded_secret.len();
 
     // 检查密钥长度，确保不超过TOTP要求的最大长度
     // 对于SHA1，推荐密钥长度为20字节（160位）
@@ -500,7 +500,7 @@ async fn generate_two_factor_code(secret: &str) -> Result<String, String> {
     }
 
     // 获取密钥长度用于调试
-    let secret_len = truncated_secret.len();
+    let _secret_len = truncated_secret.len();
 
     // 创建TOTP生成器，使用new_unchecked方法
     // 注意：new_unchecked会跳过验证，可能会创建不安全的TOTP生成器

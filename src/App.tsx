@@ -8,6 +8,7 @@ import PasswordDialog from './components/PasswordDialog';
 import PasswordGeneratorDialog from './components/PasswordGeneratorDialog';
 import CategoryDialog from './components/CategoryDialog';
 import PasswordItem from './components/PasswordItem';
+import TwoFactorAuth from './components/TwoFactorAuth';
 import useI18n from './i18n';
 
 // 类型定义
@@ -91,6 +92,10 @@ function App() {
     message: '',
   });
 
+  // 2FA状态
+  const [twoFactorSecret, setTwoFactorSecret] = useState('');
+  const [showTwoFactorPage, setShowTwoFactorPage] = useState(false);
+
   // 验证主密码
   const handleMasterPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,13 +171,13 @@ function App() {
       await navigator.clipboard.writeText(password);
       setCustomAlert({
         isOpen: true,
-        message: '密码已复制到剪贴板'
+        message: t('app.passwordCopied')
       });
     } catch (err) {
       console.error('复制失败:', err);
       setCustomAlert({
         isOpen: true,
-        message: '复制失败，请手动复制'
+        message: t('app.copyFailed')
       });
     }
   };
@@ -600,72 +605,108 @@ function App() {
         </div>
       ) : (
         <main className="app-main">
-          <div className="sidebar">
-            <div className="sidebar-header">
-              <h2>{t('app.categories')}</h2>
-              <button className="add-category-button" onClick={openAddCategoryDialog}>
-                +
-              </button>
-            </div>
-            <div className="categories-list">
-              {categories.map((category) => (
-                <div key={category.id} className="category-item-wrapper">
-                  <button
-                    className={`category-item ${selectedCategory === category.name ? 'active' : ''}`}
-                    onClick={() => setSelectedCategory(category.name)}
-                  >
-                    <span className="category-icon">{category.icon}</span>
-                    <span>{category.name}</span>
-                  </button>
-                  {category.name !== '所有' && (
-                    <div className="category-actions">
-                      <button className="category-action-button" onClick={() => openEditCategoryDialog(category)}>
-                        ✏️
-                      </button>
-                      <button className="category-action-button" onClick={() => openDeleteCategoryDialog(category)}>
-                        🗑️
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <button className="add-password-button" onClick={openAddDialog}>
-              + {t('app.add_password')}
-            </button>
-          </div>
-
-          <div className="content">
-            <div className="content-header">
-              <h2>{selectedCategory}{t('app.password')}</h2>
-            </div>
-
-            {filteredPasswords.length > 0 ? (
-              <div className="passwords-list">
-                {filteredPasswords.map((password) => {
-                  const isExpanded = expandedPasswords[password.id] || false;
-                  return (
-                    <PasswordItem
-                      key={password.id}
-                      password={password}
-                      isExpanded={isExpanded}
-                      onToggleExpanded={togglePasswordExpanded}
-                      onCopyPassword={copyPassword}
-                      onEdit={openEditDialog}
-                      onDelete={openDeleteDialog}
-                    />
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <p>{t('app.no_passwords')}</p>
-                <button className="add-first-password" onClick={openAddDialog}>
-                  + {t('app.add_first_password')}
+          {showTwoFactorPage ? (
+            // 2FA页面
+            <div className="two-factor-page">
+              <div className="two-factor-header">
+                <h2>🔐 {t('app.twoFactorAuth')}</h2>
+                <button
+                  className="back-button"
+                  onClick={() => {
+                    setShowTwoFactorPage(false);
+                    setTwoFactorSecret('');
+                  }}
+                >
+                  ← {t('app.back')}
                 </button>
               </div>
-            )}
-          </div>
+              <TwoFactorAuth
+                secret={twoFactorSecret}
+                onSecretChange={setTwoFactorSecret}
+                onCustomAlert={setCustomAlert}
+              />
+            </div>
+          ) : (
+            // 正常密码管理界面
+            <>
+              <div className="sidebar">
+                <div className="sidebar-header">
+                  <h2>{t('app.categories')}</h2>
+                  <button className="add-category-button" onClick={openAddCategoryDialog}>
+                    +
+                  </button>
+                </div>
+                <div className="categories-list">
+                  {categories.map((category) => (
+                    <div key={category.id} className="category-item-wrapper">
+                      <button
+                        className={`category-item ${selectedCategory === category.name ? 'active' : ''}`}
+                        onClick={() => setSelectedCategory(category.name)}
+                      >
+                        <span className="category-icon">{category.icon}</span>
+                        <span>{category.name}</span>
+                      </button>
+                      {category.name !== '所有' && (
+                        <div className="category-actions">
+                          <button className="category-action-button" onClick={() => openEditCategoryDialog(category)}>
+                            ✏️
+                          </button>
+                          <button className="category-action-button" onClick={() => openDeleteCategoryDialog(category)}>
+                            🗑️
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button className="add-password-button" onClick={openAddDialog}>
+                  + {t('app.add_password')}
+                </button>
+
+                {/* 2FA功能入口 */}
+                <div className="two-factor-section">
+                  <button
+                    className="two-factor-button"
+                    onClick={() => setShowTwoFactorPage(true)}
+                  >
+                    🔐 {t('app.twoFactorAuth')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="content">
+                <div className="content-header">
+                  <h2>{selectedCategory}{t('app.password')}</h2>
+                </div>
+
+                {filteredPasswords.length > 0 ? (
+                  <div className="passwords-list">
+                    {filteredPasswords.map((password) => {
+                      const isExpanded = expandedPasswords[password.id] || false;
+                      return (
+                        <PasswordItem
+                          key={password.id}
+                          password={password}
+                          isExpanded={isExpanded}
+                          onToggleExpanded={togglePasswordExpanded}
+                          onCopyPassword={copyPassword}
+                          onEdit={openEditDialog}
+                          onDelete={openDeleteDialog}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <p>{t('app.no_passwords')}</p>
+                    <button className="add-first-password" onClick={openAddDialog}>
+                      + {t('app.add_first_password')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </main>
       )}
 

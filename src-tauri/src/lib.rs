@@ -450,6 +450,77 @@ async fn generate_password(
     Ok(result)
 }
 
+#[tauri::command]
+async fn generate_two_factor_code(secret: &str) -> Result<String, String> {
+    use data_encoding::BASE32;
+    use totp_rs::Algorithm;
+    use totp_rs::TOTP;
+
+    if secret.is_empty() {
+        return Err("2FA密钥不能为空".to_string());
+    }
+
+    // 解码Base32编码的密钥，使用标准BASE32字母表（兼容GitHub）
+    // 处理可能的空格和大小写问题
+    let normalized_secret = secret.trim().to_uppercase();
+
+    // 使用标准BASE32字母表解码，忽略padding
+    let decoded_secret = match BASE32.decode(normalized_secret.as_bytes()) {
+        Ok(decoded) => decoded,
+        Err(e) => {
+            // 尝试添加padding后再解码
+            let padded_secret = match normalized_secret.len() % 8 {
+                2 => format!("{}{}", normalized_secret, "======"),
+                4 => format!("{}{}", normalized_secret, "===="),
+                5 => format!("{}{}", normalized_secret, "==="),
+                7 => format!("{}{}", normalized_secret, "="),
+                _ => normalized_secret,
+            };
+
+            match BASE32.decode(padded_secret.as_bytes()) {
+                Ok(decoded) => decoded,
+                Err(e) => {
+                    return Err(format!("解码Base32密钥失败: {:?}", e));
+                }
+            }
+        }
+    };
+
+    // 调试信息：显示原始解码后的密钥长度
+    let original_len = decoded_secret.len();
+
+    // 检查密钥长度，确保不超过TOTP要求的最大长度
+    // 对于SHA1，推荐密钥长度为20字节（160位）
+    // totp-rs 5.0版本对密钥长度有严格限制
+    let mut truncated_secret = decoded_secret;
+    // 对于SHA1算法，使用20字节密钥长度
+    if truncated_secret.len() > 20 {
+        // 截断密钥到20字节，这是SHA1的推荐长度
+        truncated_secret.truncate(20);
+    }
+
+    // 获取密钥长度用于调试
+    let secret_len = truncated_secret.len();
+
+    // 创建TOTP生成器，使用new_unchecked方法
+    // 注意：new_unchecked会跳过验证，可能会创建不安全的TOTP生成器
+    // 但对于测试目的，我们可以尝试这种方法
+    let totp = TOTP::new_unchecked(
+        Algorithm::SHA1,  // 算法
+        6,                // 位数
+        1,                // skew（时间步长乘数）
+        30,               // step（时间步长，秒）
+        truncated_secret, // 密钥
+    );
+
+    // 生成当前时间的验证码
+    let code = totp
+        .generate_current()
+        .map_err(|e| format!("生成验证码失败: {:?}", e))?;
+
+    Ok(code)
+}
+
 // 辅助函数：获取密码库
 fn get_vault() -> Result<PasswordVault, String> {
     // 尝试从内存获取
@@ -587,7 +658,8 @@ pub fn run() {
             add_category,
             update_category,
             delete_category,
-            generate_password
+            generate_password,
+            generate_two_factor_code
         ))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -77,7 +77,15 @@
     "health": "健康",
     "creating": "创建中...",
     "logging_in": "登录中...",
-    "saving": "保存中..."
+    "saving": "保存中...",
+    "twoFactorAuth": "双重认证",
+    "twoFactorSecret": "2FA密钥",
+    "enterTwoFactorSecret": "输入您的2FA密钥",
+    "copyCode": "复制验证码",
+    "copied": "已复制",
+    "back": "返回",
+    "passwordCopied": "密码已复制到剪贴板",
+    "copyFailed": "复制失败，请手动复制"
   },
   "generator": {
     "title": "密码生成器",

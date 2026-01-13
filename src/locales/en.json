@@ -71,7 +71,15 @@
     "health": "Health",
     "creating": "Creating...",
     "logging_in": "Logging in...",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "twoFactorAuth": "Two-Factor Authentication",
+    "twoFactorSecret": "2FA Secret",
+    "enterTwoFactorSecret": "Enter your 2FA secret",
+    "copyCode": "Copy code",
+    "copied": "Copied",
+    "back": "Back",
+    "passwordCopied": "Password copied to clipboard",
+    "copyFailed": "Copy failed, please copy manually"
   },
   "generator": {
     "title": "Password Generator",

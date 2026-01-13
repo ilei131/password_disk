@@ -1521,20 +1521,84 @@ body {
   color: white;
   border: none;
   border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  font-size: 1.4rem;
   font-weight: bold;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
   transition: all 0.2s;
+  position: relative;
+  z-index: 1;
+}
+
+.add-category-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #4a90e2;
+  border-radius: 50%;
+  transition: all 0.2s;
+  z-index: -1;
+}
+
+.add-category-button::after {
+  content: '+';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  line-height: 1;
+  transition: none;
+}
+
+.add-category-button:hover::before {
+  background-color: #357abd;
+  transform: scale(1.1);
 }
 
 .add-category-button:hover {
-  background-color: #357abd;
-  transform: scale(1.1);
+  background-color: transparent;
+}
+
+/* 添加菜单样式 */
+.add-menu {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.5rem 0;
+  min-width: 180px;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #333;
+  transition: background-color 0.2s;
+}
+
+.menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+/* 确保菜单在侧边栏外部显示 */
+.add-category-button-container {
+  position: relative;
 }
 
 .categories-list {

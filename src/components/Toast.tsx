@@ -9,10 +9,10 @@ interface ToastProps {
 export const Toast: React.FC<ToastProps> = ({ isOpen, message, onClose }) => {
   useEffect(() => {
     if (isOpen) {
-      // 3秒后自动关闭
+      // 2秒后自动关闭
       const timer = setTimeout(() => {
         onClose();
-      }, 3000);
+      }, 2000);
 
       return () => clearTimeout(timer);
     }

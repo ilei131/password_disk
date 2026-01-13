@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import "./App.css";
@@ -95,6 +95,29 @@ function App() {
   // 2FA状态
   const [twoFactorSecret, setTwoFactorSecret] = useState('');
   const [showTwoFactorPage, setShowTwoFactorPage] = useState(false);
+
+  // 菜单状态
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const menu = document.querySelector('.add-menu');
+      const button = document.querySelector('.add-category-button');
+      if (menu && button && !menu.contains(event.target as Node) && !button.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
 
   // 验证主密码
   const handleMasterPasswordSubmit = async (e: React.FormEvent) => {
@@ -632,9 +655,57 @@ function App() {
               <div className="sidebar">
                 <div className="sidebar-header">
                   <h2>{t('app.categories')}</h2>
-                  <button className="add-category-button" onClick={openAddCategoryDialog}>
-                    +
-                  </button>
+                  <div className="add-category-button-container">
+                    <button
+                      className="add-category-button"
+                      onClick={(e) => {
+                        // 计算菜单位置
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setMenuPosition({ x: rect.right, y: rect.bottom });
+                        setMenuOpen(true);
+                      }}
+                    >
+                    </button>
+                    {menuOpen && (
+                      <div
+                        className="add-menu"
+                        style={{
+                          position: 'fixed',
+                          left: `${menuPosition.x}px`,
+                          top: `${menuPosition.y}px`,
+                          zIndex: 1000
+                        }}
+                      >
+                        <button
+                          className="menu-item"
+                          onClick={() => {
+                            openAddCategoryDialog();
+                            setMenuOpen(false);
+                          }}
+                        >
+                          📁 {t('app.add_category')}
+                        </button>
+                        <button
+                          className="menu-item"
+                          onClick={() => {
+                            openAddDialog();
+                            setMenuOpen(false);
+                          }}
+                        >
+                          🔑 {t('app.add_password')}
+                        </button>
+                        <button
+                          className="menu-item"
+                          onClick={() => {
+                            setShowTwoFactorPage(true);
+                            setMenuOpen(false);
+                          }}
+                        >
+                          🔐 {t('app.twoFactorAuth')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="categories-list">
                   {categories.map((category) => (
@@ -658,19 +729,6 @@ function App() {
                       )}
                     </div>
                   ))}
-                </div>
-                <button className="add-password-button" onClick={openAddDialog}>
-                  + {t('app.add_password')}
-                </button>
-
-                {/* 2FA功能入口 */}
-                <div className="two-factor-section">
-                  <button
-                    className="two-factor-button"
-                    onClick={() => setShowTwoFactorPage(true)}
-                  >
-                    🔐 {t('app.twoFactorAuth')}
-                  </button>
                 </div>
               </div>
 

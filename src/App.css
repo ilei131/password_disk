@@ -1947,6 +1947,233 @@ body {
   background-color: #f0f0f0;
 }
 
+/* 头部操作区域样式 */
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.settings-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+}
+
+.settings-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+/* 备份恢复对话框样式 */
+.backup-dialog {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.backup-dialog-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.backup-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.backup-dialog-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.backup-dialog-content {
+  padding: 20px;
+}
+
+.backup-section,
+.restore-section,
+.vault-path-section {
+  margin-bottom: 24px;
+}
+
+.backup-section h3,
+.restore-section h3,
+.vault-path-section h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 1rem;
+  color: #555;
+}
+
+.backup-section p,
+.restore-section p,
+.vault-path-section p {
+  margin-bottom: 12px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.backup-content,
+.restore-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.backup-textarea,
+.restore-textarea {
+  width: 100%;
+  height: 200px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.copy-button,
+.restore-button {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.backup-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.copy-button {
+  background-color: #4a90e2;
+  color: white;
+}
+
+.copy-button:hover {
+  background-color: #357abd;
+}
+
+.export-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+  background-color: #f39c12;
+  color: white;
+}
+
+.export-button:hover {
+  background-color: #e67e22;
+}
+
+.restore-button {
+  background-color: #27ae60;
+  color: white;
+}
+
+.restore-button:hover {
+  background-color: #219a52;
+}
+
+.restore-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.import-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+  background-color: #f39c12;
+  color: white;
+}
+
+.import-button:hover {
+  background-color: #e67e22;
+}
+
+.vault-path-section p {
+  background-color: #f5f5f5;
+  padding: 12px;
+  border-radius: 4px;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .backup-dialog {
+    width: 95%;
+    margin: 20px;
+  }
+
+  .backup-textarea,
+  .restore-textarea {
+    height: 150px;
+  }
+}
+
+/* 对话框遮罩层样式 */
+.alert-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
 /* 复制密码按钮样式 */
 .copy-password-button {
   background: none;

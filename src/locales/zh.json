@@ -103,5 +103,28 @@
   "language": {
     "english": "English",
     "chinese": "中文"
+  },
+  "backup": {
+    "title": "备份恢复",
+    "backup_title": "备份密码库",
+    "backup_content": "密码库备份内容",
+    "copy_to_clipboard": "复制到剪贴板",
+    "export_to_file": "导出为文件",
+    "restore_title": "恢复密码库",
+    "restore_content": "输入备份内容",
+    "restore_vault": "恢复密码库",
+    "import_from_file": "从文件导入",
+    "copy_success": "已复制到剪贴板",
+    "copy_failed": "复制失败，请手动复制",
+    "export_success": "导出成功",
+    "export_failed": "导出失败",
+    "import_success": "导入成功",
+    "import_failed": "导入失败",
+    "restore_success": "恢复密码库成功",
+    "restore_failed": "恢复密码库失败",
+    "backup_failed": "备份密码库失败",
+    "invalid_backup": "无效的备份内容",
+    "close": "关闭",
+    "vault_path": "密码库路径"
   }
 }

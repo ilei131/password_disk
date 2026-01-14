@@ -100,6 +100,11 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
 
+  // 备份恢复状态
+  const [backupDialogOpen, setBackupDialogOpen] = useState(false);
+  const [backupContent, setBackupContent] = useState('');
+  const [restoreContent, setRestoreContent] = useState('');
+
   // 点击外部关闭菜单
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -257,6 +262,41 @@ function App() {
         isOpen: true,
         message: '生成密码失败'
       });
+    }
+  };
+
+  // 备份密码库
+  const handleBackupVault = async () => {
+    try {
+      const content = await invoke('backup_vault', {});
+      setBackupContent(content as string);
+      setBackupDialogOpen(true);
+    } catch (error) {
+      console.error('备份密码库失败:', error);
+      setCustomAlert({ isOpen: true, message: t('backup.backup_failed') });
+    }
+  };
+
+  // 恢复密码库
+  const handleRestoreVault = async () => {
+    if (!restoreContent.trim()) {
+      setCustomAlert({ isOpen: true, message: t('backup.invalid_backup') });
+      return;
+    }
+
+    try {
+      const success = await invoke('restore_vault', { content: restoreContent });
+      if (success) {
+        // 重新加载密码和分类
+        await loadPasswordsAndCategories();
+        closeBackupDialog();
+        setCustomAlert({ isOpen: true, message: t('backup.restore_success') });
+      } else {
+        setCustomAlert({ isOpen: true, message: t('backup.restore_failed') });
+      }
+    } catch (error) {
+      console.error('恢复密码库失败:', error);
+      setCustomAlert({ isOpen: true, message: t('backup.restore_failed') });
     }
   };
 
@@ -470,6 +510,11 @@ function App() {
     }));
   };
 
+  const closeBackupDialog = () => {
+    setBackupDialogOpen(false);
+    //setBackupContent('');
+    setRestoreContent('');
+  }
   // 认证界面
   if (!isAuthenticated) {
     return (
@@ -616,6 +661,15 @@ function App() {
               ×
             </button>
           )}
+        </div>
+        <div className="header-actions">
+          <button
+            className="settings-button"
+            onClick={handleBackupVault}
+            title="备份恢复"
+          >
+            ⚙️
+          </button>
         </div>
       </header>
 
@@ -846,6 +900,140 @@ function App() {
         message={customAlert.message}
         onClose={() => setCustomAlert({ isOpen: false, message: '' })}
       />
+
+      {/* 备份恢复对话框 */}
+      {backupDialogOpen && (
+        <div className="alert-overlay">
+          <div className="backup-dialog">
+            <div className="backup-dialog-header">
+              <h2>{t('backup.title')}</h2>
+              <button className="close-button" onClick={() => {
+                closeBackupDialog();
+              }}>×</button>
+            </div>
+            <div className="backup-dialog-content">
+              <div className="backup-section">
+                <h3>{t('backup.backup_title')}</h3>
+                <p>{t('backup.backup_content')}</p>
+                <div className="backup-content">
+                  <textarea
+                    value={backupContent}
+                    readOnly
+                    className="backup-textarea"
+                  />
+                  <div className="backup-actions">
+                    <button
+                      className="copy-button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(backupContent);
+                        setCustomAlert({ isOpen: true, message: t('backup.copy_success') });
+                      }}
+                    >
+                      {t('backup.copy_to_clipboard')}
+                    </button>
+                    <button
+                      className="export-button"
+                      onClick={async () => {
+                        try {
+                          // 导入Tauri的dialog和fs模块
+                          const { save } = await import('@tauri-apps/plugin-dialog');
+                          const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+
+                          // 让用户选择保存路径
+                          const filePath = await save({
+                            defaultPath: 'backup.json',
+                            filters: [
+                              {
+                                name: 'JSON Files',
+                                extensions: ['json']
+                              }
+                            ]
+                          });
+
+                          // 如果用户选择了路径
+                          if (filePath) {
+                            // 写入文件
+                            await writeTextFile(filePath, backupContent);
+
+                            setCustomAlert({ isOpen: true, message: t('backup.export_success') });
+                            closeBackupDialog();
+                          }
+                        } catch (error) {
+                          console.error('导出文件失败:', error);
+                          setCustomAlert({ isOpen: true, message: t('backup.export_failed') });
+                        }
+                      }}
+                    >
+                      {t('backup.export_to_file')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="restore-section">
+                <h3>{t('backup.restore_title')}</h3>
+                <p>{t('backup.restore_content')}</p>
+                <div className="restore-content">
+                  <textarea
+                    value={restoreContent}
+                    onChange={(e) => setRestoreContent(e.target.value)}
+                    className="restore-textarea"
+                    placeholder={t('backup.restore_content')}
+                  />
+                  <div className="restore-actions">
+                    <button
+                      className="restore-button"
+                      onClick={handleRestoreVault}
+                    >
+                      {t('backup.restore_vault')}
+                    </button>
+                    <button
+                      className="import-button"
+                      onClick={async () => {
+                        try {
+                          // 导入Tauri的dialog和fs模块
+                          const { open } = await import('@tauri-apps/plugin-dialog');
+                          const { readTextFile } = await import('@tauri-apps/plugin-fs');
+
+                          // 让用户选择备份文件
+                          const filePath = await open({
+                            filters: [
+                              {
+                                name: 'JSON Files',
+                                extensions: ['json']
+                              }
+                            ],
+                            multiple: false
+                          });
+
+                          // 如果用户选择了文件
+                          if (filePath && typeof filePath === 'string') {
+                            // 读取文件内容
+                            const content = await readTextFile(filePath);
+
+                            // 设置恢复内容
+                            setRestoreContent(content);
+
+                            setCustomAlert({ isOpen: true, message: t('backup.import_success') });
+                          }
+                        } catch (error) {
+                          console.error('导入文件失败:', error);
+                          setCustomAlert({ isOpen: true, message: t('backup.import_failed') });
+                        }
+                      }}
+                    >
+                      {t('backup.import_from_file')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {/* <div className="vault-path-section">
+                <h3>{t('backup.vault_path')}</h3>
+                <p>{vaultPath}</p>
+              </div> */}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

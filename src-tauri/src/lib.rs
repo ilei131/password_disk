@@ -5,6 +5,8 @@ use std::fs;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tauri_plugin_dialog;
+use tauri_plugin_fs;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EncryptedPasswordItem {
@@ -643,9 +645,67 @@ fn save_vault(vault: &PasswordVault) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn backup_vault() -> Result<String, String> {
+    let vault_path = Path::new(&*VAULT_FILE_PATH);
+    if !vault_path.exists() {
+        return Err("密码库文件不存在".to_string());
+    }
+
+    // 读取密码库文件内容
+    match std::fs::read_to_string(vault_path) {
+        Ok(content) => Ok(content),
+        Err(e) => Err(format!("读取密码库文件失败: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn restore_vault(content: &str) -> Result<bool, String> {
+    let vault_path = Path::new(&*VAULT_FILE_PATH);
+
+    // 首先验证输入内容是否为有效的 PasswordVault 结构
+    match serde_json::from_str::<PasswordVault>(content) {
+        Err(e) => return Err(format!("解析密码库失败: {}", e)),
+        Ok(_) => {}
+    }
+
+    // 确保目录存在
+    if let Some(parent) = vault_path.parent() {
+        if !parent.exists() {
+            match std::fs::create_dir_all(parent) {
+                Err(e) => return Err(format!("创建目录失败: {}", e)),
+                _ => {}
+            }
+        }
+    }
+
+    // 写入密码库文件
+    match std::fs::write(vault_path, content) {
+        Ok(_) => {
+            // 重新加载密码库
+            match load_vault() {
+                Ok(vault) => {
+                    let mut vault_guard = PASSWORD_VAULT.write().unwrap();
+                    *vault_guard = Some(vault);
+                    Ok(true)
+                }
+                Err(e) => Err(format!("加载密码库失败: {}", e)),
+            }
+        }
+        Err(e) => Err(format!("写入密码库文件失败: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_vault_path() -> String {
+    VAULT_FILE_PATH.clone()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler!(
             greet,
             initialize_vault,
@@ -659,7 +719,10 @@ pub fn run() {
             update_category,
             delete_category,
             generate_password,
-            generate_two_factor_code
+            generate_two_factor_code,
+            backup_vault,
+            restore_vault,
+            get_vault_path
         ))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

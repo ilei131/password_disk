@@ -97,5 +97,28 @@
   "language": {
     "english": "English",
     "chinese": "中文"
+  },
+  "backup": {
+    "title": "Backup & Restore",
+    "backup_title": "Backup Password Vault",
+    "backup_content": "Password vault backup content",
+    "copy_to_clipboard": "Copy to Clipboard",
+    "export_to_file": "Export to File",
+    "restore_title": "Restore Password Vault",
+    "restore_content": "Enter backup content",
+    "restore_vault": "Restore Vault",
+    "import_from_file": "Import from File",
+    "copy_success": "Copied to clipboard",
+    "copy_failed": "Copy failed, please copy manually",
+    "export_success": "Export successful",
+    "export_failed": "Export failed",
+    "import_success": "Import successful",
+    "import_failed": "Import failed",
+    "restore_success": "Password vault restored successfully",
+    "restore_failed": "Failed to restore password vault",
+    "backup_failed": "Failed to backup password vault",
+    "invalid_backup": "Invalid backup content",
+    "close": "Close",
+    "vault_path": "Vault Path"
   }
 }

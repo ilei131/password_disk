@@ -13,7 +13,7 @@ const TwoFactorAuth: React.FC<TwoFactorAuthProps> = ({ secret = '', onSecretChan
   const [code, setCode] = useState('');
   const [timeLeft, setTimeLeft] = useState(30);
   const [inputSecret, setInputSecret] = useState(secret);
-  const countdownIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = React.useRef<number | null>(null);
 
   // 生成TOTP验证码
   const generateCode = async (onSuccess?: () => void) => {

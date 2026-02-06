@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { save, open } from '@tauri-apps/plugin-dialog';
 import useI18n from '../i18n';
 import Layout from '../components/Layout';
 
-const BackupPage: React.FC = () => {
-  const navigate = useNavigate();
+interface BackupPageProps {
+  onBack: () => void;
+}
+
+const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
   const { t } = useI18n();
   const [backupContent, setBackupContent] = useState('');
   const [restoreContent, setRestoreContent] = useState('');
@@ -17,7 +19,7 @@ const BackupPage: React.FC = () => {
 
   // 处理返回操作
   const handleBack = () => {
-    navigate('/app');
+    onBack();
   };
 
   // 备份密码库
@@ -53,7 +55,7 @@ const BackupPage: React.FC = () => {
         setCustomAlert({ isOpen: true, message: t('backup.restore_success') });
         // 恢复成功后返回主页面
         setTimeout(() => {
-          navigate('/app');
+          onBack();
         }, 1000);
       } else {
         setCustomAlert({ isOpen: true, message: t('backup.restore_failed') });

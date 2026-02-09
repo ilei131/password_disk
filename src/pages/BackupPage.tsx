@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { save, open } from '@tauri-apps/plugin-dialog';
-import { Toast } from '../components/Toast';
 import useI18n from '../i18n';
 import Layout from '../components/Layout';
+import { Toast } from '../components/Toast';
+import CloudLoginDialog from '../components/CloudLoginDialog';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import './BackupPage.css';
-import '../components/Layout.css';
 
 interface BackupPageProps {
   onBack: () => void;
@@ -19,6 +20,8 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [customAlert, setCustomAlert] = useState({ isOpen: false, message: '' });
+  const [showCloudLogin, setShowCloudLogin] = useState(false);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
   // 组件初始化时读取密码库内容
   useEffect(() => {
@@ -61,30 +64,21 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
     }
   };
 
-  // 刷新备份内容
-  const backupToTheCloud = async () => {
-    setLoading(true);
-    setError('');
 
-    try {
-      const content = await invoke('backup_vault', {});
-      setBackupContent(content as string);
-      setCustomAlert({ isOpen: true, message: t('backup.backup_success') });
-    } catch (error) {
-      console.error('读取密码库失败:', error);
-      setCustomAlert({ isOpen: true, message: t('backup.backup_failed') });
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // 恢复密码库
+  // 显示恢复确认对话框
   const handleRestoreVault = async () => {
     if (!restoreContent.trim()) {
       setCustomAlert({ isOpen: true, message: t('backup.invalid_backup') });
       return;
     }
 
+    setShowRestoreConfirm(true);
+  };
+
+  // 确认恢复密码库
+  const confirmRestoreVault = async () => {
+    setShowRestoreConfirm(false);
     setLoading(true);
     setError('');
 
@@ -172,6 +166,76 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
     }
   };
 
+  // 打开云登录弹窗
+  const handleBackupToCloud = () => {
+    setShowCloudLogin(true);
+  };
+
+  // 登录成功后处理备份至云端
+  const handleCloudLoginSuccess = async (userId: string) => {
+    //await backupToCloud(userId);
+  };
+
+  // 备份至云端
+  const backupToCloud = async (userId: string) => {
+    if (!backupContent) {
+      setCustomAlert({ isOpen: true, message: t('backup.no_backup_content') });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // 先获取云端密码库数据
+      console.log('尝试获取云端密码库数据，用户ID:', userId);
+
+      const getResponse = await invoke('get_cloud_passwords', {
+        userId: userId
+      });
+
+      console.log('获取云端密码库响应:', getResponse);
+
+      const getdata = getResponse as any;
+
+      let cloudPasswordId = '';
+      if (getdata.passwords && getdata.passwords.length > 0) {
+        // 如果云端已有数据，使用第一个数据的id
+        cloudPasswordId = getdata.passwords[0].id;
+      }
+
+      // 构造同步数据
+      const syncData = {
+        userId: userId,
+        password: {
+          id: userId || undefined,
+          password: backupContent
+        }
+      };
+
+      // 同步至云端
+      console.log('尝试同步至云端:', syncData);
+
+      const syncResponse = await invoke('sync', {
+        request: syncData
+      });
+
+      console.log('同步响应:', syncResponse);
+
+      const syncResult = syncResponse as any;
+
+      if (syncResult.success) {
+        setCustomAlert({ isOpen: true, message: t('backup.cloud_backup_success') });
+      } else {
+        setCustomAlert({ isOpen: true, message: syncResult.error || t('backup.cloud_backup_failed') });
+      }
+    } catch (error) {
+      console.error('备份至云端失败:', error);
+      setCustomAlert({ isOpen: true, message: `${t('backup.cloud_network_error')}: ${error instanceof Error ? error.message : '未知错误'}` });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Layout title={t('backup.title')} onBack={handleBack}>
       <div className="backup-page-content">
@@ -193,13 +257,13 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
             >
               {t('backup.export_to_file')}
             </button>
-            {/* <button
+            <button
               className="secondary-button"
-              onClick={backupToTheCloud}
-              disabled={loading}
+              onClick={handleBackupToCloud}
+              disabled={!backupContent || loading}
             >
-              {t('backup.backup_to_the_cloud')}
-            </button> */}
+              {t('backup.backup_2_the_cloud')}
+            </button>
           </div>
           <div className="textarea-section">
             <h3>{t('backup.backup_content')}</h3>
@@ -251,6 +315,24 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
           isOpen={customAlert.isOpen}
           message={customAlert.message}
           onClose={() => setCustomAlert({ isOpen: false, message: '' })}
+        />
+
+        {/* 云登录弹窗 */}
+        <CloudLoginDialog
+          isOpen={showCloudLogin}
+          onClose={() => setShowCloudLogin(false)}
+          onLoginSuccess={handleCloudLoginSuccess}
+        />
+
+        {/* 恢复确认对话框 */}
+        <ConfirmDialog
+          isOpen={showRestoreConfirm}
+          title={t('backup.restore_confirm_title')}
+          message={t('backup.restore_confirm_message')}
+          onConfirm={confirmRestoreVault}
+          onCancel={() => setShowRestoreConfirm(false)}
+          okLabel={t('app.confirm')}
+          cancelLabel={t('app.cancel')}
         />
       </div>
     </Layout>

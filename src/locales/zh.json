@@ -127,6 +127,8 @@
     "invalid_backup": "无效的备份内容",
     "close": "关闭",
     "vault_path": "密码库路径",
-    "backup_to_the_cloud": "备份至云端"
+    "backup_2_the_cloud": "备份至云端",
+    "restore_confirm_title": "确认恢复",
+    "restore_confirm_message": "恢复操作会覆盖当前密码库。确定要继续吗？"
   }
 }

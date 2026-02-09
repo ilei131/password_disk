@@ -39,5 +39,6 @@ dirs = "5"
 sha2 = "0.10"
 totp-rs = "5.0"
 data-encoding = "2.5"
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
 
 

@@ -774,49 +774,7 @@ body {
   background-color: #2980b9;
 }
 
-/* 自定义提示框样式 */
-.toast-alert {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background-color: #4a90e2;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-  animation: fadein 0.5s, fadeout 0.5s 2.5s;
-}
 
-.toast-content p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-@keyframes fadein {
-  from {
-    bottom: 0;
-    opacity: 0;
-  }
-
-  to {
-    bottom: 20px;
-    opacity: 1;
-  }
-}
-
-@keyframes fadeout {
-  from {
-    bottom: 20px;
-    opacity: 1;
-  }
-
-  to {
-    bottom: 0;
-    opacity: 0;
-  }
-}
 
 /* 搜索框样式 */
 .search-container {

@@ -1,0 +1,8 @@
+name = "password-disk"
+main = "index.js"
+compatibility_date = "2026-02-05"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "password-disk"
+database_id = "0eb269c6-c0d9-456b-9e82-66755867419e" # 替换为实际的 D1 数据库 ID

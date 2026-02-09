@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import "./App.css";
+import './components/Layout.css';
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { Toast } from './components/Toast';
 import PasswordDialog from './components/PasswordDialog';
@@ -9,6 +10,7 @@ import PasswordGeneratorDialog from './components/PasswordGeneratorDialog';
 import CategoryDialog from './components/CategoryDialog';
 import PasswordItem from './components/PasswordItem';
 import TwoFactorAuth from './components/TwoFactorAuth';
+import BackupPage from './pages/BackupPage';
 import useI18n from './i18n';
 
 // 类型定义
@@ -33,6 +35,9 @@ interface Category {
 function App() {
   // 国际化
   const { t, language, changeLanguage } = useI18n();
+
+  // 页面状态
+  const [showBackupPage, setShowBackupPage] = useState(false);
 
   // 语言下拉菜单状态
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
@@ -99,11 +104,6 @@ function App() {
   // 菜单状态
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-
-  // 备份恢复状态
-  const [backupDialogOpen, setBackupDialogOpen] = useState(false);
-  const [backupContent, setBackupContent] = useState('');
-  const [restoreContent, setRestoreContent] = useState('');
 
   // 点击外部关闭菜单
   useEffect(() => {
@@ -266,39 +266,10 @@ function App() {
   };
 
   // 备份密码库
-  const handleBackupVault = async () => {
-    try {
-      const content = await invoke('backup_vault', {});
-      setBackupContent(content as string);
-      setBackupDialogOpen(true);
-    } catch (error) {
-      console.error('备份密码库失败:', error);
-      setCustomAlert({ isOpen: true, message: t('backup.backup_failed') });
-    }
+  const handleBackupVault = () => {
+    setShowBackupPage(true);
   };
 
-  // 恢复密码库
-  const handleRestoreVault = async () => {
-    if (!restoreContent.trim()) {
-      setCustomAlert({ isOpen: true, message: t('backup.invalid_backup') });
-      return;
-    }
-
-    try {
-      const success = await invoke('restore_vault', { content: restoreContent });
-      if (success) {
-        // 重新加载密码和分类
-        await loadPasswordsAndCategories();
-        closeBackupDialog();
-        setCustomAlert({ isOpen: true, message: t('backup.restore_success') });
-      } else {
-        setCustomAlert({ isOpen: true, message: t('backup.restore_failed') });
-      }
-    } catch (error) {
-      console.error('恢复密码库失败:', error);
-      setCustomAlert({ isOpen: true, message: t('backup.restore_failed') });
-    }
-  };
 
   // 保存密码
   const savePassword = async () => {
@@ -510,11 +481,7 @@ function App() {
     }));
   };
 
-  const closeBackupDialog = () => {
-    setBackupDialogOpen(false);
-    //setBackupContent('');
-    setRestoreContent('');
-  }
+
   // 认证界面
   if (!isAuthenticated) {
     return (
@@ -642,398 +609,270 @@ function App() {
   // 主应用界面
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>{t('app.title')}</h1>
-        <div className="search-container">
-          <input
-            type="text"
-            placeholder={t('app.search_placeholder')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-          {searchTerm && (
-            <button
-              className="search-clear-button"
-              onClick={() => setSearchTerm('')}
-              aria-label="清除搜索"
-            >
-              ×
-            </button>
-          )}
-        </div>
-        <div className="header-actions">
-          <button
-            className="settings-button"
-            onClick={handleBackupVault}
-            title="备份恢复"
-          >
-            ⚙️
-          </button>
-        </div>
-      </header>
-
-      {loading ? (
-        <div className="loading-overlay">
-          <div className="loading">
-            <div className="loading-spinner"></div>
-            <div>{t('app.loading')}</div>
-          </div>
-        </div>
+      {showBackupPage ? (
+        // 备份恢复页面
+        <BackupPage onBack={() => setShowBackupPage(false)} />
       ) : (
-        <main className="app-main">
-          {showTwoFactorPage ? (
-            // 2FA页面
-            <div className="two-factor-page">
-              <div className="two-factor-header">
-                <h2>🔐 {t('app.twoFactorAuth')}</h2>
-                <button
-                  className="back-button"
-                  onClick={() => {
-                    setShowTwoFactorPage(false);
-                    setTwoFactorSecret('');
-                  }}
-                >
-                  ← {t('app.back')}
-                </button>
-              </div>
-              <TwoFactorAuth
-                secret={twoFactorSecret}
-                onSecretChange={setTwoFactorSecret}
-                onCustomAlert={setCustomAlert}
+        <>
+          <header className="app-header">
+            <h1>{t('app.title')}</h1>
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder={t('app.search_placeholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
               />
+              {searchTerm && (
+                <button
+                  className="search-clear-button"
+                  onClick={() => setSearchTerm('')}
+                  aria-label="清除搜索"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            <div className="header-actions">
+              <button
+                className="settings-button"
+                onClick={handleBackupVault}
+                title="备份恢复"
+              >
+                ⚙️
+              </button>
+            </div>
+          </header>
+
+          {loading ? (
+            <div className="loading-overlay">
+              <div className="loading">
+                <div className="loading-spinner"></div>
+                <div>{t('app.loading')}</div>
+              </div>
             </div>
           ) : (
-            // 正常密码管理界面
-            <>
-              <div className="sidebar">
-                <div className="sidebar-header">
-                  <h2>{t('app.categories')}</h2>
-                  <div className="add-category-button-container">
+            <main className="app-main">
+              {showTwoFactorPage ? (
+                // 2FA页面
+                <div className="two-factor-page">
+                  <div className="two-factor-header">
+                    <h2>🔐 {t('app.twoFactorAuth')}</h2>
                     <button
-                      className="add-category-button"
-                      onClick={(e) => {
-                        // 计算菜单位置
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setMenuPosition({ x: rect.right, y: rect.bottom });
-                        setMenuOpen(true);
+                      className="back-button"
+                      onClick={() => {
+                        setShowTwoFactorPage(false);
+                        setTwoFactorSecret('');
                       }}
                     >
+                      ← {t('app.back')}
                     </button>
-                    {menuOpen && (
-                      <div
-                        className="add-menu"
-                        style={{
-                          position: 'fixed',
-                          left: `${menuPosition.x}px`,
-                          top: `${menuPosition.y}px`,
-                          zIndex: 1000
-                        }}
-                      >
+                  </div>
+                  <TwoFactorAuth
+                    secret={twoFactorSecret}
+                    onSecretChange={setTwoFactorSecret}
+                    onCustomAlert={setCustomAlert}
+                  />
+                </div>
+              ) : (
+                // 正常密码管理界面
+                <>
+                  <div className="sidebar">
+                    <div className="sidebar-header">
+                      <h2>{t('app.categories')}</h2>
+                      <div className="add-category-button-container">
                         <button
-                          className="menu-item"
-                          onClick={() => {
-                            openAddCategoryDialog();
-                            setMenuOpen(false);
+                          className="add-category-button"
+                          onClick={(e) => {
+                            // 计算菜单位置
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setMenuPosition({ x: rect.right, y: rect.bottom });
+                            setMenuOpen(true);
                           }}
                         >
-                          📁 {t('app.add_category')}
                         </button>
-                        <button
-                          className="menu-item"
-                          onClick={() => {
-                            openAddDialog();
-                            setMenuOpen(false);
-                          }}
-                        >
-                          🔑 {t('app.add_password')}
-                        </button>
-                        <button
-                          className="menu-item"
-                          onClick={() => {
-                            setShowTwoFactorPage(true);
-                            setMenuOpen(false);
-                          }}
-                        >
-                          🔐 {t('app.twoFactorAuth')}
+                        {menuOpen && (
+                          <div
+                            className="add-menu"
+                            style={{
+                              position: 'fixed',
+                              left: `${menuPosition.x}px`,
+                              top: `${menuPosition.y}px`,
+                              zIndex: 1000
+                            }}
+                          >
+                            <button
+                              className="menu-item"
+                              onClick={() => {
+                                openAddCategoryDialog();
+                                setMenuOpen(false);
+                              }}
+                            >
+                              📁 {t('app.add_category')}
+                            </button>
+                            <button
+                              className="menu-item"
+                              onClick={() => {
+                                openAddDialog();
+                                setMenuOpen(false);
+                              }}
+                            >
+                              🔑 {t('app.add_password')}
+                            </button>
+                            <button
+                              className="menu-item"
+                              onClick={() => {
+                                setShowTwoFactorPage(true);
+                                setMenuOpen(false);
+                              }}
+                            >
+                              🔐 {t('app.twoFactorAuth')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="categories-list">
+                      {categories.map((category) => (
+                        <div key={category.id} className="category-item-wrapper">
+                          <button
+                            className={`category-item ${selectedCategory === category.name ? 'active' : ''}`}
+                            onClick={() => setSelectedCategory(category.name)}
+                          >
+                            <span className="category-icon">{category.icon}</span>
+                            <span>{category.name}</span>
+                          </button>
+                          {category.name !== '所有' && (
+                            <div className="category-actions">
+                              <button className="category-action-button" onClick={() => openEditCategoryDialog(category)}>
+                                ✏️
+                              </button>
+                              <button className="category-action-button" onClick={() => openDeleteCategoryDialog(category)}>
+                                🗑️
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="content">
+                    <div className="content-header">
+                      <h2>{selectedCategory}{t('app.password')}</h2>
+                    </div>
+
+                    {filteredPasswords.length > 0 ? (
+                      <div className="passwords-list">
+                        {filteredPasswords.map((password) => {
+                          const isExpanded = expandedPasswords[password.id] || false;
+                          return (
+                            <PasswordItem
+                              key={password.id}
+                              password={password}
+                              isExpanded={isExpanded}
+                              onToggleExpanded={togglePasswordExpanded}
+                              onCopyPassword={copyPassword}
+                              onEdit={openEditDialog}
+                              onDelete={openDeleteDialog}
+                            />
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="empty-state">
+                        <p>{t('app.no_passwords')}</p>
+                        <button className="add-first-password" onClick={openAddDialog}>
+                          + {t('app.add_first_password')}
                         </button>
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="categories-list">
-                  {categories.map((category) => (
-                    <div key={category.id} className="category-item-wrapper">
-                      <button
-                        className={`category-item ${selectedCategory === category.name ? 'active' : ''}`}
-                        onClick={() => setSelectedCategory(category.name)}
-                      >
-                        <span className="category-icon">{category.icon}</span>
-                        <span>{category.name}</span>
-                      </button>
-                      {category.name !== '所有' && (
-                        <div className="category-actions">
-                          <button className="category-action-button" onClick={() => openEditCategoryDialog(category)}>
-                            ✏️
-                          </button>
-                          <button className="category-action-button" onClick={() => openDeleteCategoryDialog(category)}>
-                            🗑️
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="content">
-                <div className="content-header">
-                  <h2>{selectedCategory}{t('app.password')}</h2>
-                </div>
-
-                {filteredPasswords.length > 0 ? (
-                  <div className="passwords-list">
-                    {filteredPasswords.map((password) => {
-                      const isExpanded = expandedPasswords[password.id] || false;
-                      return (
-                        <PasswordItem
-                          key={password.id}
-                          password={password}
-                          isExpanded={isExpanded}
-                          onToggleExpanded={togglePasswordExpanded}
-                          onCopyPassword={copyPassword}
-                          onEdit={openEditDialog}
-                          onDelete={openDeleteDialog}
-                        />
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <p>{t('app.no_passwords')}</p>
-                    <button className="add-first-password" onClick={openAddDialog}>
-                      + {t('app.add_first_password')}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
+                </>
+              )}
+            </main>
           )}
-        </main>
-      )}
 
-      {/* 添加/编辑密码对话框 */}
-      <PasswordDialog
-        isOpen={addDialogOpen || editDialogOpen}
-        isEdit={editDialogOpen}
-        password={newPassword}
-        categories={categories}
-        loading={loading}
-        onClose={() => {
-          setAddDialogOpen(false);
-          setEditDialogOpen(false);
-        }}
-        onSave={savePassword}
-        onPasswordChange={(field, value) => {
-          setNewPassword({ ...newPassword, [field]: value });
-        }}
-        onGeneratePassword={() => setGeneratorDialogOpen(true)}
-      />
+          {/* 添加/编辑密码对话框 */}
+          <PasswordDialog
+            isOpen={addDialogOpen || editDialogOpen}
+            isEdit={editDialogOpen}
+            password={newPassword}
+            categories={categories}
+            loading={loading}
+            onClose={() => {
+              setAddDialogOpen(false);
+              setEditDialogOpen(false);
+            }}
+            onSave={savePassword}
+            onPasswordChange={(field, value) => {
+              setNewPassword({ ...newPassword, [field]: value });
+            }}
+            onGeneratePassword={() => setGeneratorDialogOpen(true)}
+          />
 
-      {/* 删除确认对话框 */}
-      <ConfirmDialog
-        isOpen={deleteDialogOpen}
-        title={deleteType === 'password' ? t('app.delete_password') : t('app.delete_category')}
-        message={deleteType === 'password' && currentPassword ? t('app.confirm_delete_password', { title: currentPassword.title }) : deleteType === 'category' && currentCategory ? t('app.confirm_delete_category', { name: currentCategory.name }) : ''}
-        onConfirm={deleteType === 'password' ? deletePassword : deleteCategory}
-        onCancel={() => setDeleteDialogOpen(false)}
-        okLabel={t('app.delete')}
-        cancelLabel={t('app.cancel')}
-      />
+          {/* 删除确认对话框 */}
+          <ConfirmDialog
+            isOpen={deleteDialogOpen}
+            title={deleteType === 'password' ? t('app.delete_password') : t('app.delete_category')}
+            message={deleteType === 'password' && currentPassword ? t('app.confirm_delete_password', { title: currentPassword.title }) : deleteType === 'category' && currentCategory ? t('app.confirm_delete_category', { name: currentCategory.name }) : ''}
+            onConfirm={deleteType === 'password' ? deletePassword : deleteCategory}
+            onCancel={() => setDeleteDialogOpen(false)}
+            okLabel={t('app.delete')}
+            cancelLabel={t('app.cancel')}
+          />
 
-      {/* 密码生成器对话框 */}
-      <PasswordGeneratorDialog
-        isOpen={generatorDialogOpen}
-        generatedPassword={newPassword.password}
-        settings={generatorSettings}
-        loading={loading}
-        onClose={() => setGeneratorDialogOpen(false)}
-        onGenerate={generatePassword}
-        onUsePassword={() => setGeneratorDialogOpen(false)}
-        onSettingsChange={(key, value) => setGeneratorSettings({ ...generatorSettings, [key]: value })}
-      />
+          {/* 密码生成器对话框 */}
+          <PasswordGeneratorDialog
+            isOpen={generatorDialogOpen}
+            generatedPassword={newPassword.password}
+            settings={generatorSettings}
+            loading={loading}
+            onClose={() => setGeneratorDialogOpen(false)}
+            onGenerate={generatePassword}
+            onUsePassword={() => setGeneratorDialogOpen(false)}
+            onSettingsChange={(key, value) => setGeneratorSettings({ ...generatorSettings, [key]: value })}
+          />
 
-      {/* 添加分类对话框 */}
-      <CategoryDialog
-        isOpen={addCategoryDialogOpen}
-        isEdit={false}
-        category={newCategory}
-        loading={loading}
-        error={error}
-        onClose={() => {
-          setAddCategoryDialogOpen(false);
-          setError('');
-        }}
-        onSave={addCategory}
-        onCategoryChange={(field, value) => setNewCategory({ ...newCategory, [field]: value })}
-      />
+          {/* 添加分类对话框 */}
+          <CategoryDialog
+            isOpen={addCategoryDialogOpen}
+            isEdit={false}
+            category={newCategory}
+            loading={loading}
+            error={error}
+            onClose={() => {
+              setAddCategoryDialogOpen(false);
+              setError('');
+            }}
+            onSave={addCategory}
+            onCategoryChange={(field, value) => setNewCategory({ ...newCategory, [field]: value })}
+          />
 
-      {/* 编辑分类对话框 */}
-      <CategoryDialog
-        isOpen={editCategoryDialogOpen}
-        isEdit={true}
-        category={newCategory}
-        loading={loading}
-        error={error}
-        onClose={() => {
-          setEditCategoryDialogOpen(false);
-          setCurrentCategory(null);
-          setError('');
-        }}
-        onSave={editCategory}
-        onCategoryChange={(field, value) => setNewCategory({ ...newCategory, [field]: value })}
-      />
+          {/* 编辑分类对话框 */}
+          <CategoryDialog
+            isOpen={editCategoryDialogOpen}
+            isEdit={true}
+            category={newCategory}
+            loading={loading}
+            error={error}
+            onClose={() => {
+              setEditCategoryDialogOpen(false);
+              setCurrentCategory(null);
+              setError('');
+            }}
+            onSave={editCategory}
+            onCategoryChange={(field, value) => setNewCategory({ ...newCategory, [field]: value })}
+          />
 
-      {/* Toast提示 */}
-      <Toast
-        isOpen={customAlert.isOpen}
-        message={customAlert.message}
-        onClose={() => setCustomAlert({ isOpen: false, message: '' })}
-      />
-
-      {/* 备份恢复对话框 */}
-      {backupDialogOpen && (
-        <div className="alert-overlay">
-          <div className="backup-dialog">
-            <div className="backup-dialog-header">
-              <h2>{t('backup.title')}</h2>
-              <button className="close-button" onClick={() => {
-                closeBackupDialog();
-              }}>×</button>
-            </div>
-            <div className="backup-dialog-content">
-              <div className="backup-section">
-                <h3>{t('backup.backup_title')}</h3>
-                <p>{t('backup.backup_content')}</p>
-                <div className="backup-content">
-                  <textarea
-                    value={backupContent}
-                    readOnly
-                    className="backup-textarea"
-                  />
-                  <div className="backup-actions">
-                    <button
-                      className="copy-button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(backupContent);
-                        setCustomAlert({ isOpen: true, message: t('backup.copy_success') });
-                      }}
-                    >
-                      {t('backup.copy_to_clipboard')}
-                    </button>
-                    <button
-                      className="export-button"
-                      onClick={async () => {
-                        try {
-                          // 导入Tauri的dialog和fs模块
-                          const { save } = await import('@tauri-apps/plugin-dialog');
-                          const { writeTextFile } = await import('@tauri-apps/plugin-fs');
-
-                          // 让用户选择保存路径
-                          const filePath = await save({
-                            defaultPath: 'backup.json',
-                            filters: [
-                              {
-                                name: 'JSON Files',
-                                extensions: ['json']
-                              }
-                            ]
-                          });
-
-                          // 如果用户选择了路径
-                          if (filePath) {
-                            // 写入文件
-                            await writeTextFile(filePath, backupContent);
-
-                            setCustomAlert({ isOpen: true, message: t('backup.export_success') });
-                            closeBackupDialog();
-                          }
-                        } catch (error) {
-                          console.error('导出文件失败:', error);
-                          setCustomAlert({ isOpen: true, message: t('backup.export_failed') });
-                        }
-                      }}
-                    >
-                      {t('backup.export_to_file')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="restore-section">
-                <h3>{t('backup.restore_title')}</h3>
-                <p>{t('backup.restore_content')}</p>
-                <div className="restore-content">
-                  <textarea
-                    value={restoreContent}
-                    onChange={(e) => setRestoreContent(e.target.value)}
-                    className="restore-textarea"
-                    placeholder={t('backup.restore_content')}
-                  />
-                  <div className="restore-actions">
-                    <button
-                      className="restore-button"
-                      onClick={handleRestoreVault}
-                    >
-                      {t('backup.restore_vault')}
-                    </button>
-                    <button
-                      className="import-button"
-                      onClick={async () => {
-                        try {
-                          // 导入Tauri的dialog和fs模块
-                          const { open } = await import('@tauri-apps/plugin-dialog');
-                          const { readTextFile } = await import('@tauri-apps/plugin-fs');
-
-                          // 让用户选择备份文件
-                          const filePath = await open({
-                            filters: [
-                              {
-                                name: 'JSON Files',
-                                extensions: ['json']
-                              }
-                            ],
-                            multiple: false
-                          });
-
-                          // 如果用户选择了文件
-                          if (filePath && typeof filePath === 'string') {
-                            // 读取文件内容
-                            const content = await readTextFile(filePath);
-
-                            // 设置恢复内容
-                            setRestoreContent(content);
-
-                            setCustomAlert({ isOpen: true, message: t('backup.import_success') });
-                          }
-                        } catch (error) {
-                          console.error('导入文件失败:', error);
-                          setCustomAlert({ isOpen: true, message: t('backup.import_failed') });
-                        }
-                      }}
-                    >
-                      {t('backup.import_from_file')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              {/* <div className="vault-path-section">
-                <h3>{t('backup.vault_path')}</h3>
-                <p>{vaultPath}</p>
-              </div> */}
-            </div>
-          </div>
-        </div>
-      )}
+          {/* Toast提示 */}
+          <Toast
+            isOpen={customAlert.isOpen}
+            message={customAlert.message}
+            onClose={() => setCustomAlert({ isOpen: false, message: '' })}
+          />
+        </>)}
     </div>
   );
 };

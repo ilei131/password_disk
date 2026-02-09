@@ -42,6 +42,7 @@ pub struct RegisterRequest {
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
+    pub backup: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -102,7 +103,7 @@ pub async fn register(username: String, password: String) -> ApiResponse {
     let response_data: Result<serde_json::Value, _> = response.json().await;
     match response_data {
         Ok(data) => {
-            println!("响应数据解析成功: {:?}", data);
+            println!("响应数据解析成功1: {:?}", data);
             if data
                 .get("success")
                 .and_then(|v| v.as_bool())
@@ -146,19 +147,24 @@ pub async fn register(username: String, password: String) -> ApiResponse {
 }
 
 #[tauri::command]
-pub async fn login(username: String, password: String) -> ApiResponse {
+pub async fn login(username: String, password: String, backup: Option<String>) -> ApiResponse {
     println!("开始处理登录请求");
     println!("用户名: {}", username);
     println!(
         "密码: {}",
         if password.is_empty() { "空" } else { "******" }
     );
+    println!("是否包含备份密码库: {}", backup.is_some());
 
     let client = Client::new();
     let url = format!("{}/api/login", BASE_URL);
     println!("API URL: {}", url);
 
-    let request = LoginRequest { username, password };
+    let request = LoginRequest {
+        username,
+        password,
+        backup,
+    };
     println!("请求数据: {:?}", request);
 
     println!("发送网络请求...");
@@ -182,7 +188,7 @@ pub async fn login(username: String, password: String) -> ApiResponse {
     let response_data: Result<serde_json::Value, _> = response.json().await;
     match response_data {
         Ok(data) => {
-            println!("响应数据解析成功: {:?}", data);
+            println!("响应数据解析成功2: {:?}", data);
             if data
                 .get("success")
                 .and_then(|v| v.as_bool())

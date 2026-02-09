@@ -1,5 +1,6 @@
 import React from 'react';
 import useI18n from '../i18n';
+import './ConfirmDialog.css';
 
 interface ConfirmDialogProps {
   isOpen: boolean;

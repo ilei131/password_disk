@@ -1,244 +1,79 @@
-/* 备份恢复页面样式 */
-.backup-page {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.backup-header {
-  background-color: #2c3e50;
-  color: white;
-  padding: 1rem 2rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-}
-
-.back-button {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white;
-  cursor: pointer;
-  font-size: 0.9rem;
-  padding: 0.5rem 1rem;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.back-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
-.backup-header h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.backup-content {
-  flex: 1;
-  padding: 2rem;
-  max-width: 1000px;
-  width: 100%;
+.backup-page-content {
+  padding: 20px;
+  max-width: 800px;
   margin: 0 auto;
-  overflow-y: auto;
-  max-height: calc(100vh - 80px);
 }
 
-.backup-section,
-.restore-section {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
-  margin-bottom: 2rem;
-}
-
-.backup-section h2,
-.restore-section h2 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: #2c3e50;
-  font-size: 1.3rem;
-  font-weight: 600;
-}
-
-.backup-actions,
-.restore-actions {
+.actions {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .primary-button {
-  padding: 0.75rem 1.5rem;
-  background-color: #4a90e2;
+  background-color: #4CAF50;
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 14px;
 }
 
-.primary-button:hover:not(:disabled) {
-  background-color: #357abd;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+.primary-button:hover {
+  background-color: #45a049;
 }
 
 .primary-button:disabled {
-  background-color: #bdc3c7;
+  background-color: #cccccc;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 .secondary-button {
-  padding: 0.75rem 1.5rem;
-  background-color: #f39c12;
+  background-color: #2196F3;
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 14px;
 }
 
-.secondary-button:hover:not(:disabled) {
-  background-color: #e67e22;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+.secondary-button:hover {
+  background-color: #0b7dda;
 }
 
 .secondary-button:disabled {
-  background-color: #bdc3c7;
+  background-color: #cccccc;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
-.backup-content-section,
-.restore-content-section {
-  margin-top: 1.5rem;
+.textarea-section {
+  margin-top: 20px;
 }
 
-.backup-content-section h3,
-.restore-content-section h3 {
+.textarea-section h3 {
   margin-top: 0;
-  margin-bottom: 1rem;
-  color: #555;
-  font-size: 1.1rem;
-  font-weight: 500;
+  margin-bottom: 10px;
+  color: #333;
+  font-size: 14px;
 }
 
-.backup-content-section textarea,
-.restore-content-section textarea {
+textarea {
   width: 100%;
-  padding: 1rem;
+  padding: 10px;
   border: 1px solid #ddd;
-  border-radius: 6px;
-  font-family: monospace;
-  font-size: 0.9rem;
+  border-radius: 4px;
+  font-size: 14px;
   resize: vertical;
-  min-height: 200px;
-  box-sizing: border-box;
-  transition: all 0.3s ease;
 }
 
-.backup-content-section textarea:focus,
-.restore-content-section textarea:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+textarea:read-only {
+  background-color: #f9f9f9;
 }
 
 .error-message {
-  background-color: rgba(231, 76, 60, 0.1);
-  color: #e74c3c;
-  padding: 10px 15px;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  text-align: center;
-  border-left: 4px solid #e74c3c;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .backup-content {
-    padding: 1rem;
-  }
-
-  .backup-section,
-  .restore-section {
-    padding: 1.5rem;
-  }
-
-  .backup-actions,
-  .restore-actions {
-    flex-direction: column;
-  }
-
-  .primary-button,
-  .secondary-button {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .backup-content-section textarea,
-  .restore-content-section textarea {
-    min-height: 150px;
-  }
-}
-
-/* 自定义提示框样式 */
-.toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background-color: #4caf50;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  animation: slideIn 0.3s ease;
-}
-
-.toast-content {
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  color: #f44336;
+  margin-top: 10px;
+  font-size: 14px;
 }

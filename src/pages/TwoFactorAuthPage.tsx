@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
-import TwoFactorAuth from './TwoFactorAuth';
+import TwoFactorAuth from '../components/TwoFactorAuth';
 import useI18n from '../i18n';
 
-const TwoFactorAuthPage: React.FC = () => {
-  const navigate = useNavigate();
+interface TwoFactorAuthPageProps {
+  onBack: () => void;
+}
+
+const TwoFactorAuthPage: React.FC<TwoFactorAuthPageProps> = ({ onBack }) => {
   const { t } = useI18n();
   const [secret, setSecret] = useState('');
   const [customAlert, setCustomAlert] = useState({ isOpen: false, message: '' });
 
   // 处理返回操作
   const handleBack = () => {
-    navigate('/app');
+    onBack();
   };
 
   return (

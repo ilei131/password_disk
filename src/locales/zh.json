@@ -123,8 +123,10 @@
     "restore_success": "恢复密码库成功",
     "restore_failed": "恢复密码库失败",
     "backup_failed": "备份密码库失败",
+    "backup_success": "备份密码库成功",
     "invalid_backup": "无效的备份内容",
     "close": "关闭",
-    "vault_path": "密码库路径"
+    "vault_path": "密码库路径",
+    "backup_to_the_cloud": "备份至云端"
   }
 }

@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { save, open } from '@tauri-apps/plugin-dialog';
+import { Toast } from '../components/Toast';
 import useI18n from '../i18n';
 import Layout from '../components/Layout';
+import './BackupPage.css';
+import '../components/Layout.css';
 
 interface BackupPageProps {
   onBack: () => void;
@@ -17,13 +20,49 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
   const [error, setError] = useState('');
   const [customAlert, setCustomAlert] = useState({ isOpen: false, message: '' });
 
+  // 组件初始化时读取密码库内容
+  useEffect(() => {
+    const loadBackupContent = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const content = await invoke('backup_vault', {});
+        setBackupContent(content as string);
+      } catch (error) {
+        console.error('读取密码库失败:', error);
+        setCustomAlert({ isOpen: true, message: t('backup.backup_failed') });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBackupContent();
+  }, [t]);
+
   // 处理返回操作
   const handleBack = () => {
     onBack();
   };
 
-  // 备份密码库
-  const handleBackupVault = async () => {
+  // 复制到剪贴板
+  const copyToClipboard = async () => {
+    if (!backupContent) {
+      setCustomAlert({ isOpen: true, message: t('backup.no_backup_content') });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(backupContent);
+      setCustomAlert({ isOpen: true, message: t('backup.copy_success') });
+    } catch (error) {
+      console.error('复制到剪贴板失败:', error);
+      setCustomAlert({ isOpen: true, message: t('backup.copy_failed') });
+    }
+  };
+
+  // 刷新备份内容
+  const backupToTheCloud = async () => {
     setLoading(true);
     setError('');
 
@@ -32,7 +71,7 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
       setBackupContent(content as string);
       setCustomAlert({ isOpen: true, message: t('backup.backup_success') });
     } catch (error) {
-      console.error('备份密码库失败:', error);
+      console.error('读取密码库失败:', error);
       setCustomAlert({ isOpen: true, message: t('backup.backup_failed') });
     } finally {
       setLoading(false);
@@ -138,14 +177,14 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
       <div className="backup-page-content">
         {/* 备份部分 */}
         <div className="card-section">
-          <h2>{t('backup.create_backup')}</h2>
+          <h2>{t('backup.backup_title')}</h2>
           <div className="actions">
             <button
               className="primary-button"
-              onClick={handleBackupVault}
-              disabled={loading}
+              onClick={copyToClipboard}
+              disabled={!backupContent || loading}
             >
-              {loading ? t('backup.creating_backup') : t('backup.create_backup')}
+              {t('backup.copy_to_clipboard')}
             </button>
             <button
               className="secondary-button"
@@ -154,13 +193,20 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
             >
               {t('backup.export_to_file')}
             </button>
+            {/* <button
+              className="secondary-button"
+              onClick={backupToTheCloud}
+              disabled={loading}
+            >
+              {t('backup.backup_to_the_cloud')}
+            </button> */}
           </div>
           <div className="textarea-section">
             <h3>{t('backup.backup_content')}</h3>
             <textarea
               value={backupContent}
               onChange={(e) => setBackupContent(e.target.value)}
-              placeholder={t('backup.backup_content_placeholder')}
+              placeholder={t('backup.backup_content')}
               rows={10}
               readOnly
             />
@@ -169,14 +215,14 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
 
         {/* 恢复部分 */}
         <div className="card-section">
-          <h2>{t('backup.restore_backup')}</h2>
+          <h2>{t('backup.restore_title')}</h2>
           <div className="actions">
             <button
               className="primary-button"
               onClick={handleRestoreVault}
               disabled={!restoreContent || loading}
             >
-              {loading ? t('backup.restoring_backup') : t('backup.restore_backup')}
+              {t('backup.restore_vault')}
             </button>
             <button
               className="secondary-button"
@@ -191,7 +237,7 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
             <textarea
               value={restoreContent}
               onChange={(e) => setRestoreContent(e.target.value)}
-              placeholder={t('backup.restore_content_placeholder')}
+              placeholder={t('backup.restore_content')}
               rows={10}
             />
           </div>
@@ -201,13 +247,11 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
         {error && <div className="error-message">{error}</div>}
 
         {/* 自定义提示框 */}
-        {customAlert.isOpen && (
-          <div className="toast">
-            <div className="toast-content">
-              {customAlert.message}
-            </div>
-          </div>
-        )}
+        <Toast
+          isOpen={customAlert.isOpen}
+          message={customAlert.message}
+          onClose={() => setCustomAlert({ isOpen: false, message: '' })}
+        />
       </div>
     </Layout>
   );

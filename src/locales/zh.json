@@ -128,6 +128,7 @@
     "close": "关闭",
     "vault_path": "密码库路径",
     "backup_2_the_cloud": "备份至云端",
+    "restore_from_cloud": "从云端同步",
     "restore_confirm_title": "确认恢复",
     "restore_confirm_message": "恢复操作会覆盖当前密码库。确定要继续吗？"
   }

@@ -121,6 +121,7 @@
     "close": "Close",
     "vault_path": "Vault Path",
     "backup_2_the_cloud": "Backup to the cloud",
+    "restore_from_cloud": "Restore from cloud",
     "restore_confirm_title": "Confirm Restore",
     "restore_confirm_message": "Restoring will overwrite your current password vault. Are you sure you want to continue?"
   }

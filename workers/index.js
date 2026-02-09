@@ -631,12 +631,12 @@ const handleSync = async (request, db, headers) => {
   try {
     console.log('收到同步请求');
     const body = await request.json();
-    console.log('同步数据:', body);
-    const { user_id, password } = body;
+    console.log('同步请求数据:', body);
+    const { username, password, user_id } = body;
 
-    if (!user_id) {
-      console.log('缺少用户ID');
-      return new Response(JSON.stringify({ error: '缺少用户ID' }), {
+    if (!username || !password || !user_id) {
+      console.log('同步请求缺少必要参数');
+      return new Response(JSON.stringify({ error: '缺少必要参数' }), {
         status: 400,
         headers: {
           ...headers,
@@ -656,36 +656,73 @@ const handleSync = async (request, db, headers) => {
         }
       });
     }
-    console.log('开始处理同步');
-    // 同步密码
-    if (password) {
-      console.log('同步密码');
-      try {
-        if (password.id) {
-          // 更新现有密码
-          console.log('更新密码:', password.id);
-          await db.prepare(`
-              UPDATE passwords
-              SET password = ?, updated_at = ?
-              WHERE id = ? AND user_id = ?
-            `).bind(password.password, Date.now(), password.id, user_id).run();
-        } else {
-          // 添加新密码
-          const id = generateId();
-          const now = Date.now();
-          console.log('添加新密码:', id);
-          await db.prepare(`
-              INSERT INTO passwords (id, user_id, title, username, password, url, notes, category, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(id, user_id, '', '', password.password, '', '', '', now, now).run();
+
+    console.log('开始验证用户身份');
+    let user;
+    try {
+      // 查询用户信息，包括密码哈希和盐
+      user = await db.prepare(`SELECT id, password_hash, salt FROM users WHERE username = ?`)
+        .bind(username)
+        .first();
+    } catch (getError) {
+      console.error('数据库查询失败:', getError);
+      return new Response(JSON.stringify({ error: '数据库查询失败' }), {
+        status: 500,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
         }
-      } catch (passwordError) {
-        console.error('处理密码失败:', passwordError);
-        // 继续处理其他密码，不中断整个同步过程
-      }
+      });
     }
+
+    console.log('用户查询结果:', user);
+    if (!user) {
+      console.log('用户不存在:', username);
+      return new Response(JSON.stringify({ error: '用户不存在' }), {
+        status: 401,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    // 使用存储的 salt 生成密码哈希
+    const password_hash = btoa(password + user.salt);
+
+    // 验证密码哈希
+    if (user.password_hash !== password_hash) {
+      console.log('密码错误:', username);
+      return new Response(JSON.stringify({ error: '密码错误' }), {
+        status: 401,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    console.log('用户身份验证成功:', user.id);
+
+    // 查询用户的密码库备份
+    let backupData = null;
+    try {
+      const passwordRecord = await db.prepare(`SELECT backup FROM password WHERE user_id = ?`)
+        .bind(user_id)
+        .first();
+
+      if (passwordRecord) {
+        backupData = passwordRecord.backup;
+        console.log('获取密码库备份成功');
+      } else {
+        console.log('用户暂无密码库备份');
+      }
+    } catch (queryError) {
+      console.error('查询密码库备份失败:', queryError);
+    }
+
     console.log('同步成功');
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, backup: backupData }), {
       status: 200,
       headers: {
         ...headers,

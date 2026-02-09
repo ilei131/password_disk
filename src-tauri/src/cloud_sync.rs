@@ -47,9 +47,8 @@ pub struct LoginRequest {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SyncRequest {
-    #[serde(rename = "userId")]
-    pub user_id: String,
-    pub password: Option<SyncPasswordData>,
+    pub username: String,
+    pub password: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -64,6 +63,7 @@ pub struct ApiResponse {
     pub id: Option<String>,
     pub error: Option<String>,
     pub passwords: Option<Vec<PasswordData>>,
+    pub backup: Option<String>,
 }
 
 #[tauri::command]
@@ -95,6 +95,7 @@ pub async fn register(username: String, password: String) -> ApiResponse {
                 id: None,
                 error: Some(format!("网络请求失败: {}", e)),
                 passwords: None,
+                backup: None,
             };
         }
     };
@@ -118,6 +119,7 @@ pub async fn register(username: String, password: String) -> ApiResponse {
                         .map(|s| s.to_string()),
                     error: None,
                     passwords: None,
+                    backup: None,
                 }
             } else {
                 let error_msg = data
@@ -131,6 +133,7 @@ pub async fn register(username: String, password: String) -> ApiResponse {
                     id: None,
                     error: error_msg,
                     passwords: None,
+                    backup: None,
                 }
             }
         }
@@ -141,6 +144,7 @@ pub async fn register(username: String, password: String) -> ApiResponse {
                 id: None,
                 error: Some(format!("解析响应失败: {}", e)),
                 passwords: None,
+                backup: None,
             }
         }
     }
@@ -180,6 +184,7 @@ pub async fn login(username: String, password: String, backup: Option<String>) -
                 id: None,
                 error: Some(format!("网络请求失败: {}", e)),
                 passwords: None,
+                backup: None,
             };
         }
     };
@@ -203,6 +208,7 @@ pub async fn login(username: String, password: String, backup: Option<String>) -
                         .map(|s| s.to_string()),
                     error: None,
                     passwords: None,
+                    backup: None,
                 }
             } else {
                 let error_msg = data
@@ -216,6 +222,7 @@ pub async fn login(username: String, password: String, backup: Option<String>) -
                     id: None,
                     error: error_msg,
                     passwords: None,
+                    backup: None,
                 }
             }
         }
@@ -226,6 +233,7 @@ pub async fn login(username: String, password: String, backup: Option<String>) -
                 id: None,
                 error: Some(format!("解析响应失败: {}", e)),
                 passwords: None,
+                backup: None,
             }
         }
     }
@@ -233,54 +241,89 @@ pub async fn login(username: String, password: String, backup: Option<String>) -
 
 #[tauri::command]
 pub async fn sync(request: SyncRequest) -> ApiResponse {
+    println!("开始处理同步请求");
+    println!("用户名: {}", request.username);
+    println!(
+        "密码: {}",
+        if request.password.is_empty() {
+            "空"
+        } else {
+            "******"
+        }
+    );
     let client = Client::new();
     let url = format!("{}/api/sync", BASE_URL);
+    println!("API URL: {}", url);
 
+    println!("发送网络请求...");
     let response = match client.post(&url).json(&request).send().await {
-        Ok(res) => res,
+        Ok(res) => {
+            println!("网络请求成功，状态码: {}", res.status());
+            res
+        }
         Err(e) => {
+            println!("网络请求失败: {}", e);
             return ApiResponse {
                 success: false,
                 id: None,
                 error: Some(format!("网络请求失败: {}", e)),
                 passwords: None,
+                backup: None,
             };
         }
     };
 
+    println!("解析响应数据...");
     let response_data: Result<serde_json::Value, _> = response.json().await;
     match response_data {
         Ok(data) => {
+            println!("响应数据解析成功: {:?}", data);
             if data
                 .get("success")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false)
             {
+                println!("同步成功");
+                // 获取备份数据
+                let backup = data
+                    .get("backup")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                println!("获取备份数据: {}", backup.is_some());
+
                 ApiResponse {
                     success: true,
                     id: None,
                     error: None,
                     passwords: None,
+                    backup,
                 }
             } else {
+                let error_msg = data
+                    .get("error")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .or(Some("同步失败".to_string()));
+                println!("同步失败: {:?}", error_msg);
                 ApiResponse {
                     success: false,
                     id: None,
-                    error: data
-                        .get("error")
-                        .and_then(|v| v.as_str())
-                        .map(|s| s.to_string())
-                        .or(Some("同步失败".to_string())),
+                    error: error_msg,
                     passwords: None,
+                    backup: None,
                 }
             }
         }
-        Err(e) => ApiResponse {
-            success: false,
-            id: None,
-            error: Some(format!("解析响应失败: {}", e)),
-            passwords: None,
-        },
+        Err(e) => {
+            println!("解析响应失败: {}", e);
+            ApiResponse {
+                success: false,
+                id: None,
+                error: Some(format!("解析响应失败: {}", e)),
+                passwords: None,
+                backup: None,
+            }
+        }
     }
 }
 
@@ -297,6 +340,7 @@ pub async fn get_cloud_passwords(user_id: String) -> ApiResponse {
                 id: None,
                 error: Some(format!("网络请求失败: {}", e)),
                 passwords: None,
+                backup: None,
             };
         }
     };
@@ -338,6 +382,7 @@ pub async fn get_cloud_passwords(user_id: String) -> ApiResponse {
                     id: None,
                     error: None,
                     passwords: Some(passwords),
+                    backup: None,
                 }
             } else {
                 ApiResponse {
@@ -345,6 +390,7 @@ pub async fn get_cloud_passwords(user_id: String) -> ApiResponse {
                     id: None,
                     error: None,
                     passwords: Some(Vec::new()),
+                    backup: None,
                 }
             }
         }
@@ -353,6 +399,7 @@ pub async fn get_cloud_passwords(user_id: String) -> ApiResponse {
             id: None,
             error: Some(format!("解析响应失败: {}", e)),
             passwords: None,
+            backup: None,
         },
     }
 }

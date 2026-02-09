@@ -8,6 +8,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri_plugin_dialog;
 use tauri_plugin_fs;
 
+// 导入云同步模块
+mod cloud_sync;
+use cloud_sync::*;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EncryptedPasswordItem {
     pub id: String,
@@ -722,7 +726,12 @@ pub fn run() {
             generate_two_factor_code,
             backup_vault,
             restore_vault,
-            get_vault_path
+            get_vault_path,
+            // 云同步相关命令
+            register,
+            login,
+            sync,
+            get_cloud_passwords
         ))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

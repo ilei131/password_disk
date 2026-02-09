@@ -117,12 +117,30 @@
     "restore_success": "Password vault restored successfully",
     "restore_failed": "Failed to restore password vault",
     "backup_failed": "Failed to backup password vault",
+    "backup_success": "Backup successful",
+    "cloud_backup_success": "Cloud backup successful",
+    "cloud_backup_failed": "Cloud backup failed",
+    "cloud_restore_failed": "Cloud restore failed",
+    "cloud_network_error": "Network error",
     "invalid_backup": "Invalid backup content",
     "close": "Close",
     "vault_path": "Vault Path",
     "backup_2_the_cloud": "Backup to the cloud",
     "restore_from_cloud": "Restore from cloud",
+    "backup": "Backup",
+    "sync": "Sync",
     "restore_confirm_title": "Confirm Restore",
     "restore_confirm_message": "Restoring will overwrite your current password vault. Are you sure you want to continue?"
+  },
+  "cloud": {
+    "register": "Register",
+    "login_failed": "Login failed",
+    "network_error": "Network error",
+    "username": "Username",
+    "password": "Password",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "have_account": "Already have an account?",
+    "no_account": "Don't have an account?"
   }
 }

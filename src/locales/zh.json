@@ -124,12 +124,29 @@
     "restore_failed": "恢复密码库失败",
     "backup_failed": "备份密码库失败",
     "backup_success": "备份密码库成功",
+    "cloud_backup_success": "云端备份成功",
+    "cloud_backup_failed": "云端备份失败",
+    "cloud_restore_failed": "云端恢复失败",
+    "cloud_network_error": "网络错误",
     "invalid_backup": "无效的备份内容",
     "close": "关闭",
     "vault_path": "密码库路径",
     "backup_2_the_cloud": "备份至云端",
     "restore_from_cloud": "从云端同步",
+    "backup": "备份",
+    "sync": "同步",
     "restore_confirm_title": "确认恢复",
     "restore_confirm_message": "恢复操作会覆盖当前密码库。确定要继续吗？"
+  },
+  "cloud": {
+    "register": "注册",
+    "login_failed": "登录失败",
+    "network_error": "网络错误",
+    "username": "用户名",
+    "password": "密码",
+    "cancel": "取消",
+    "loading": "加载中...",
+    "have_account": "已有账号？",
+    "no_account": "没有账号？"
   }
 }

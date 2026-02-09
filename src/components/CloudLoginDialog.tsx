@@ -82,10 +82,19 @@ const CloudLoginDialog: React.FC<CloudLoginDialogProps> = ({
       if (response.success) {
         console.log('操作成功，用户ID:', response.id);
 
-        // 关闭对话框并通知登录成功
-        console.log('关闭对话框并通知登录成功');
-        onLoginSuccess(response.id || '', response.backup);
-        onClose();
+        if (isRegistering) {
+          // 注册成功，清除用户输入，显示登录状态，不关闭弹窗
+          console.log('注册成功，切换到登录状态');
+          setUsername('');
+          setPassword('');
+          setIsRegistering(false);
+          setError('');
+        } else {
+          // 登录或同步成功，关闭对话框并通知登录成功
+          console.log('关闭对话框并通知登录成功');
+          onLoginSuccess(response.id || '', response.backup);
+          onClose();
+        }
       } else {
         console.log('操作失败，错误信息:', response.error);
         setError(response.error || t('cloud.login_failed'));

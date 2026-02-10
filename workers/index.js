@@ -28,7 +28,7 @@ const initializeDatabase = async (db) => {
 
 // 生成唯一ID
 const generateId = () => {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+  return Date.now();
 };
 
 // 主处理函数
@@ -84,20 +84,6 @@ export default {
         return await handleDeletePassword(request, env.DB, headers);
       }
 
-      // 分类相关
-      if (path === '/api/categories' && request.method === 'GET') {
-        return await handleGetCategories(request, env.DB, headers);
-      }
-      if (path === '/api/categories' && request.method === 'POST') {
-        return await handleAddCategory(request, env.DB, headers);
-      }
-      if (path === '/api/categories' && request.method === 'PUT') {
-        return await handleUpdateCategory(request, env.DB, headers);
-      }
-      if (path === '/api/categories' && request.method === 'DELETE') {
-        return await handleDeleteCategory(request, env.DB, headers);
-      }
-
       // 同步相关
       if (path === '/api/sync' && request.method === 'POST') {
         return await handleSync(request, env.DB, headers);
@@ -123,9 +109,9 @@ const handleRegister = async (request, db, headers) => {
     console.log('收到注册请求');
     const body = await request.json();
     console.log('注册请求数据:', body);
-    const { username, password_hash, salt } = body;
+    const { username, password } = body;
 
-    if (!username || !password_hash || !salt) {
+    if (!username || !password) {
       console.log('注册请求缺少必要参数');
       return new Response(JSON.stringify({ error: '缺少必要参数' }), {
         status: 400,
@@ -139,6 +125,11 @@ const handleRegister = async (request, db, headers) => {
     console.log('开始注册用户:', username);
     const id = generateId();
     const now = Date.now();
+
+    // 生成随机盐
+    const salt = Math.random().toString(36).substring(2);
+    // 使用密码和盐生成哈希
+    const password_hash = btoa(password + salt);
 
     console.log('检查数据库对象:', typeof db);
     if (!db || typeof db !== 'object') {
@@ -214,9 +205,9 @@ const handleLogin = async (request, db, headers) => {
     console.log('收到登录请求');
     const body = await request.json();
     console.log('登录请求数据:', body);
-    const { username } = body;
+    const { username, password, backup } = body;
 
-    if (!username) {
+    if (!username || !password) {
       console.log('登录请求缺少必要参数');
       return new Response(JSON.stringify({ error: '缺少必要参数' }), {
         status: 400,
@@ -242,20 +233,19 @@ const handleLogin = async (request, db, headers) => {
     console.log('开始登录用户:', username);
     let user;
     try {
-      // 尝试使用 prepare 方法
-      user = await db.prepare(`SELECT id FROM users WHERE username = ?`)
+      // 查询用户信息，包括密码哈希和盐
+      user = await db.prepare(`SELECT id, password_hash, salt FROM users WHERE username = ?`)
         .bind(username)
         .first();
     } catch (getError) {
       console.error('数据库查询失败:', getError);
-      // 尝试其他方法
-      try {
-        // 这里可以添加其他查询方法的尝试
-        user = null;
-      } catch (getError2) {
-        console.error('其他查询方法也失败:', getError2);
-        throw getError2;
-      }
+      return new Response(JSON.stringify({ error: '数据库查询失败' }), {
+        status: 500,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        }
+      });
     }
 
     console.log('登录查询结果:', user);
@@ -270,7 +260,72 @@ const handleLogin = async (request, db, headers) => {
       });
     }
 
+    // 使用存储的 salt 生成密码哈希
+    const password_hash = btoa(password + user.salt);
+
+    // 验证密码哈希
+    if (user.password_hash !== password_hash) {
+      console.log('密码错误:', username);
+      return new Response(JSON.stringify({ error: '密码错误' }), {
+        status: 401,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
     console.log('用户登录成功:', user.id);
+
+    // 处理密码库备份
+    if (backup) {
+      console.log('处理密码库备份');
+      try {
+        // 检查用户是否已有密码库备份
+        let existingPassword;
+        try {
+          existingPassword = await db.prepare(`SELECT id FROM password WHERE user_id = ?`)
+            .bind(user.id)
+            .first();
+        } catch (queryError) {
+          console.error('查询现有密码库失败:', queryError);
+          existingPassword = null;
+        }
+
+        if (existingPassword) {
+          // 更新现有密码库
+          console.log('更新现有密码库:', existingPassword.id);
+          await db.prepare(`
+                UPDATE password
+                SET backup = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND user_id = ?
+              `).bind(backup, existingPassword.id, user.id).run();
+        } else {
+          // 添加新密码库
+          const id = generateId();
+          console.log('添加新密码库:', id);
+          await db.prepare(`
+                INSERT INTO password (id, user_id, backup, created_at, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+              `).bind(id, user.id, backup).run();
+        }
+        console.log('密码库备份成功');
+      } catch (backupError) {
+        console.error('密码库备份失败:', backupError);
+        // 即使备份失败，也返回登录成功
+        return new Response(JSON.stringify({
+          error: backupError.message || '未知错误',
+          full_error: JSON.stringify(backupError, Object.getOwnPropertyNames(backupError))
+        }), {
+          status: 500,
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+    }
+
     return new Response(JSON.stringify({ success: true, id: user.id }), {
       status: 200,
       headers: {
@@ -280,8 +335,6 @@ const handleLogin = async (request, db, headers) => {
     });
   } catch (error) {
     console.error('登录失败:', error);
-    // 返回完整的错误信息
-    console.log('返回完整错误信息:', error);
     return new Response(JSON.stringify({
       error: error.message || '未知错误',
       full_error: JSON.stringify(error, Object.getOwnPropertyNames(error))
@@ -331,7 +384,7 @@ const handleGetPasswords = async (request, db, headers) => {
     try {
       // 尝试使用 prepare 方法
       passwords = await db.prepare(`
-        SELECT id, user_id, title, username, password, url, notes, category, created_at, updated_at
+        SELECT id, user_id, password, created_at, updated_at
         FROM passwords
         WHERE user_id = ?
       `).bind(user_id).all();
@@ -375,9 +428,9 @@ const handleAddPassword = async (request, db, headers) => {
     console.log('收到添加密码请求');
     const body = await request.json();
     console.log('添加密码数据:', body);
-    const { user_id, title, username, password, url, notes, category } = body;
+    const { user_id, password } = body;
 
-    if (!user_id || !title || !username || !password || !category) {
+    if (!user_id || !password) {
       console.log('缺少必要参数');
       return new Response(JSON.stringify({ error: '缺少必要参数' }), {
         status: 400,
@@ -409,7 +462,7 @@ const handleAddPassword = async (request, db, headers) => {
       await db.prepare(`
         INSERT INTO passwords (id, user_id, title, username, password, url, notes, category, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(id, user_id, title, username, password, url || '', notes || '', category, now, now).run();
+      `).bind(id, user_id, '', '', password, '', '', '', now, now).run();
     } catch (execError) {
       console.error('添加密码失败:', execError);
       throw execError;
@@ -444,9 +497,9 @@ const handleUpdatePassword = async (request, db, headers) => {
     console.log('收到更新密码请求');
     const body = await request.json();
     console.log('更新密码数据:', body);
-    const { id, user_id, title, username, password, url, notes, category } = body;
+    const { id, user_id, password } = body;
 
-    if (!id || !user_id || !title || !username || !password || !category) {
+    if (!id || !user_id || !password) {
       console.log('缺少必要参数');
       return new Response(JSON.stringify({ error: '缺少必要参数' }), {
         status: 400,
@@ -476,9 +529,9 @@ const handleUpdatePassword = async (request, db, headers) => {
       // 尝试使用 prepare 方法
       await db.prepare(`
         UPDATE passwords
-        SET title = ?, username = ?, password = ?, url = ?, notes = ?, category = ?, updated_at = ?
+        SET password = ?, updated_at = ?
         WHERE id = ? AND user_id = ?
-      `).bind(title, username, password, url || '', notes || '', category, now, id, user_id).run();
+      `).bind(password, now, id, user_id).run();
     } catch (execError) {
       console.error('更新密码失败:', execError);
       throw execError;
@@ -573,324 +626,17 @@ const handleDeletePassword = async (request, db, headers) => {
   }
 };
 
-// 处理获取分类列表
-const handleGetCategories = async (request, db, headers) => {
-  try {
-    console.log('收到获取分类列表请求');
-    const url = new URL(request.url);
-    const user_id = url.searchParams.get('user_id');
-    console.log('用户ID:', user_id);
-
-    if (!user_id) {
-      console.log('缺少用户ID');
-      return new Response(JSON.stringify({ error: '缺少用户ID' }), {
-        status: 400,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    console.log('检查数据库对象:', typeof db);
-    if (!db || typeof db !== 'object') {
-      console.log('数据库对象无效');
-      return new Response(JSON.stringify({ error: '数据库连接失败' }), {
-        status: 500,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    console.log('执行分类列表查询');
-    let categories;
-    try {
-      // 尝试使用 prepare 方法
-      categories = await db.prepare(`
-        SELECT id, user_id, name, icon, created_at, updated_at
-        FROM categories
-        WHERE user_id = ?
-      `).bind(user_id).all();
-
-      // 确保 categories 是一个数组
-      if (!Array.isArray(categories)) {
-        console.log('分类列表查询结果不是数组，转换为数组:', categories);
-        categories = [];
-      }
-    } catch (queryError) {
-      console.error('分类列表查询失败:', queryError);
-      categories = [];
-    }
-
-    console.log('分类列表查询结果:', categories.length, '条记录');
-    return new Response(JSON.stringify({ categories }), {
-      status: 200,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      }
-    });
-  } catch (error) {
-    console.error('处理获取分类列表失败:', error);
-    return new Response(JSON.stringify({
-      error: error.message || '未知错误',
-      full_error: JSON.stringify(error, Object.getOwnPropertyNames(error))
-    }), {
-      status: 500,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      }
-    });
-  }
-};
-
-// 处理添加分类
-const handleAddCategory = async (request, db, headers) => {
-  try {
-    console.log('收到添加分类请求');
-    const body = await request.json();
-    console.log('添加分类数据:', body);
-    const { user_id, name, icon } = body;
-
-    if (!user_id || !name || !icon) {
-      console.log('缺少必要参数');
-      return new Response(JSON.stringify({ error: '缺少必要参数' }), {
-        status: 400,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    console.log('检查数据库对象:', typeof db);
-    if (!db || typeof db !== 'object') {
-      console.log('数据库对象无效');
-      return new Response(JSON.stringify({ error: '数据库连接失败' }), {
-        status: 500,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    const id = generateId();
-    const now = Date.now();
-
-    console.log('执行添加分类操作');
-    try {
-      // 尝试使用 prepare 方法
-      await db.prepare(`
-        INSERT INTO categories (id, user_id, name, icon, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).bind(id, user_id, name, icon, now, now).run();
-    } catch (execError) {
-      console.error('添加分类失败:', execError);
-      throw execError;
-    }
-
-    console.log('分类添加成功:', id);
-    return new Response(JSON.stringify({ success: true, id }), {
-      status: 200,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      }
-    });
-  } catch (error) {
-    console.error('处理添加分类失败:', error);
-    return new Response(JSON.stringify({
-      error: error.message || '未知错误',
-      full_error: JSON.stringify(error, Object.getOwnPropertyNames(error))
-    }), {
-      status: 500,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      }
-    });
-  }
-};
-
-// 处理更新分类
-const handleUpdateCategory = async (request, db, headers) => {
-  try {
-    console.log('收到更新分类请求');
-    const body = await request.json();
-    console.log('更新分类数据:', body);
-    const { id, user_id, name, icon } = body;
-
-    if (!id || !user_id || !name || !icon) {
-      console.log('缺少必要参数');
-      return new Response(JSON.stringify({ error: '缺少必要参数' }), {
-        status: 400,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    console.log('检查数据库对象:', typeof db);
-    if (!db || typeof db !== 'object') {
-      console.log('数据库对象无效');
-      return new Response(JSON.stringify({ error: '数据库连接失败' }), {
-        status: 500,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    const now = Date.now();
-
-    console.log('执行更新分类操作');
-    try {
-      // 尝试使用 prepare 方法
-      await db.prepare(`
-        UPDATE categories
-        SET name = ?, icon = ?, updated_at = ?
-        WHERE id = ? AND user_id = ?
-      `).bind(name, icon, now, id, user_id).run();
-    } catch (execError) {
-      console.error('更新分类失败:', execError);
-      throw execError;
-    }
-
-    console.log('分类更新成功:', id);
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      }
-    });
-  } catch (error) {
-    console.error('处理更新分类失败:', error);
-    return new Response(JSON.stringify({
-      error: error.message || '未知错误',
-      full_error: JSON.stringify(error, Object.getOwnPropertyNames(error))
-    }), {
-      status: 500,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      }
-    });
-  }
-};
-
-// 处理删除分类
-const handleDeleteCategory = async (request, db, headers) => {
-  try {
-    console.log('收到删除分类请求');
-    const body = await request.json();
-    console.log('删除分类数据:', body);
-    const { id, user_id } = body;
-
-    if (!id || !user_id) {
-      console.log('缺少必要参数');
-      return new Response(JSON.stringify({ error: '缺少必要参数' }), {
-        status: 400,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    console.log('检查数据库对象:', typeof db);
-    if (!db || typeof db !== 'object') {
-      console.log('数据库对象无效');
-      return new Response(JSON.stringify({ error: '数据库连接失败' }), {
-        status: 500,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    // 检查是否有密码使用该分类
-    console.log('检查是否有密码使用该分类');
-    let passwordCount;
-    try {
-      // 尝试使用 prepare 方法
-      passwordCount = await db.prepare(`
-        SELECT COUNT(*) as count
-        FROM passwords
-        WHERE category = (SELECT name FROM categories WHERE id = ? AND user_id = ?)
-        AND user_id = ?
-      `).bind(id, user_id, user_id).first();
-    } catch (getError) {
-      console.error('检查密码数量失败:', getError);
-      // 假设没有密码使用该分类，继续执行
-      passwordCount = { count: 0 };
-    }
-
-    console.log('密码数量检查结果:', passwordCount);
-    if (passwordCount && passwordCount.count > 0) {
-      console.log('该分类下还有密码，无法删除');
-      return new Response(JSON.stringify({ error: '该分类下还有密码，无法删除' }), {
-        status: 400,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    console.log('执行删除分类操作');
-    try {
-      // 尝试使用 prepare 方法
-      await db.prepare(`
-        DELETE FROM categories
-        WHERE id = ? AND user_id = ?
-      `).bind(id, user_id).run();
-    } catch (execError) {
-      console.error('删除分类失败:', execError);
-      throw execError;
-    }
-
-    console.log('分类删除成功:', id);
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      }
-    });
-  } catch (error) {
-    console.error('处理删除分类失败:', error);
-    return new Response(JSON.stringify({
-      error: error.message || '未知错误',
-      full_error: JSON.stringify(error, Object.getOwnPropertyNames(error))
-    }), {
-      status: 500,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      }
-    });
-  }
-};
-
 // 处理同步
 const handleSync = async (request, db, headers) => {
   try {
     console.log('收到同步请求');
     const body = await request.json();
-    console.log('同步数据:', body);
-    const { user_id, passwords, categories } = body;
+    console.log('同步请求数据:', body);
+    const { username, password, user_id } = body;
 
-    if (!user_id) {
-      console.log('缺少用户ID');
-      return new Response(JSON.stringify({ error: '缺少用户ID' }), {
+    if (!username || !password || !user_id) {
+      console.log('同步请求缺少必要参数');
+      return new Response(JSON.stringify({ error: '缺少必要参数' }), {
         status: 400,
         headers: {
           ...headers,
@@ -911,70 +657,72 @@ const handleSync = async (request, db, headers) => {
       });
     }
 
-    console.log('开始处理同步');
-
-    // 同步密码
-    if (passwords) {
-      console.log('同步密码:', passwords.length, '条密码');
-      for (const password of passwords) {
-        try {
-          if (password.id) {
-            // 更新现有密码
-            console.log('更新密码:', password.id);
-            await db.prepare(`
-              UPDATE passwords
-              SET title = ?, username = ?, password = ?, url = ?, notes = ?, category = ?, updated_at = ?
-              WHERE id = ? AND user_id = ?
-            `).bind(password.title, password.username, password.password, password.url || '', password.notes || '', password.category, Date.now(), password.id, user_id).run();
-          } else {
-            // 添加新密码
-            const id = generateId();
-            const now = Date.now();
-            console.log('添加新密码:', id);
-            await db.prepare(`
-              INSERT INTO passwords (id, user_id, title, username, password, url, notes, category, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(id, user_id, password.title, password.username, password.password, password.url || '', password.notes || '', password.category, now, now).run();
-          }
-        } catch (passwordError) {
-          console.error('处理密码失败:', passwordError);
-          // 继续处理其他密码，不中断整个同步过程
+    console.log('开始验证用户身份');
+    let user;
+    try {
+      // 查询用户信息，包括密码哈希和盐
+      user = await db.prepare(`SELECT id, password_hash, salt FROM users WHERE username = ?`)
+        .bind(username)
+        .first();
+    } catch (getError) {
+      console.error('数据库查询失败:', getError);
+      return new Response(JSON.stringify({ error: '数据库查询失败' }), {
+        status: 500,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
         }
-      }
+      });
     }
 
-    // 同步分类
-    if (categories) {
-      console.log('同步分类:', categories.length, '条分类');
-      for (const category of categories) {
-        try {
-          if (category.id) {
-            // 更新现有分类
-            console.log('更新分类:', category.id);
-            await db.prepare(`
-              UPDATE categories
-              SET name = ?, icon = ?, updated_at = ?
-              WHERE id = ? AND user_id = ?
-            `).bind(category.name, category.icon, Date.now(), category.id, user_id).run();
-          } else {
-            // 添加新分类
-            const id = generateId();
-            const now = Date.now();
-            console.log('添加新分类:', id);
-            await db.prepare(`
-              INSERT INTO categories (id, user_id, name, icon, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?)
-            `).bind(id, user_id, category.name, category.icon, now, now).run();
-          }
-        } catch (categoryError) {
-          console.error('处理分类失败:', categoryError);
-          // 继续处理其他分类，不中断整个同步过程
+    console.log('用户查询结果:', user);
+    if (!user) {
+      console.log('用户不存在:', username);
+      return new Response(JSON.stringify({ error: '用户不存在' }), {
+        status: 401,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
         }
+      });
+    }
+
+    // 使用存储的 salt 生成密码哈希
+    const password_hash = btoa(password + user.salt);
+
+    // 验证密码哈希
+    if (user.password_hash !== password_hash) {
+      console.log('密码错误:', username);
+      return new Response(JSON.stringify({ error: '密码错误' }), {
+        status: 401,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    console.log('用户身份验证成功:', user.id);
+
+    // 查询用户的密码库备份
+    let backupData = null;
+    try {
+      const passwordRecord = await db.prepare(`SELECT backup FROM password WHERE user_id = ?`)
+        .bind(user_id)
+        .first();
+
+      if (passwordRecord) {
+        backupData = passwordRecord.backup;
+        console.log('获取密码库备份成功');
+      } else {
+        console.log('用户暂无密码库备份');
       }
+    } catch (queryError) {
+      console.error('查询密码库备份失败:', queryError);
     }
 
     console.log('同步成功');
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, backup: backupData }), {
       status: 200,
       headers: {
         ...headers,

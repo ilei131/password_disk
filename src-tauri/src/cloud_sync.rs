@@ -1,36 +1,9 @@
 // 云同步相关接口实现
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
 
 // API 基础 URL
 const BASE_URL: &str = "https://password-disk.ilei.workers.dev";
-
-// 内存存储用户数据
-lazy_static::lazy_static! {
-    pub static ref USERS: Arc<RwLock<HashMap<String, UserData>>> = Arc::new(RwLock::new(HashMap::new()));
-    pub static ref PASSWORDS: Arc<RwLock<HashMap<String, PasswordData>>> = Arc::new(RwLock::new(HashMap::new()));
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UserData {
-    pub id: String,
-    pub username: String,
-    pub password_hash: String,
-    pub salt: String,
-    pub created_at: u64,
-    pub updated_at: u64,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PasswordData {
-    pub id: String,
-    pub user_id: String,
-    pub password: String,
-    pub created_at: u64,
-    pub updated_at: u64,
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RegisterRequest {
@@ -52,17 +25,11 @@ pub struct SyncRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SyncPasswordData {
-    pub id: Option<String>,
-    pub password: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ApiResponse {
     pub success: bool,
     pub id: Option<String>,
     pub error: Option<String>,
-    pub passwords: Option<Vec<PasswordData>>,
+    pub passwords: Option<Vec<String>>,
     pub backup: Option<String>,
 }
 
@@ -240,22 +207,19 @@ pub async fn login(username: String, password: String, backup: Option<String>) -
 }
 
 #[tauri::command]
-pub async fn sync(request: SyncRequest) -> ApiResponse {
+pub async fn sync(username: String, password: String) -> ApiResponse {
     println!("开始处理同步请求");
-    println!("用户名: {}", request.username);
+    println!("用户名: {}", username);
     println!(
         "密码: {}",
-        if request.password.is_empty() {
-            "空"
-        } else {
-            "******"
-        }
+        if password.is_empty() { "空" } else { "******" }
     );
+
     let client = Client::new();
     let url = format!("{}/api/sync", BASE_URL);
     println!("API URL: {}", url);
-
-    println!("发送网络请求...");
+    let request = SyncRequest { username, password };
+    println!("请求数据: {:?}", request);
     let response = match client.post(&url).json(&request).send().await {
         Ok(res) => {
             println!("网络请求成功，状态码: {}", res.status());
@@ -366,13 +330,10 @@ pub async fn get_cloud_passwords(user_id: String) -> ApiResponse {
                                     .and_then(|v| v.as_u64())
                                     .unwrap_or(0);
 
-                                passwords.push(PasswordData {
-                                    id: id.to_string(),
-                                    user_id: user_id.to_string(),
-                                    password: password.to_string(),
-                                    created_at,
-                                    updated_at,
-                                });
+                                passwords.push(format!(
+                                    "{{\"id\":\"{}\",\"user_id\":\"{}\",\"password\":\"{}\",\"created_at\":{},\"updated_at\":{}}}",
+                                    id, user_id, password, created_at, updated_at
+                                ));
                             }
                         }
                     }

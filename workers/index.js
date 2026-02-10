@@ -632,9 +632,9 @@ const handleSync = async (request, db, headers) => {
     console.log('收到同步请求');
     const body = await request.json();
     console.log('同步请求数据:', body);
-    const { username, password, user_id } = body;
+    const { username, password } = body;
 
-    if (!username || !password || !user_id) {
+    if (!username || !password) {
       console.log('同步请求缺少必要参数');
       return new Response(JSON.stringify({ error: '缺少必要参数' }), {
         status: 400,
@@ -708,7 +708,7 @@ const handleSync = async (request, db, headers) => {
     let backupData = null;
     try {
       const passwordRecord = await db.prepare(`SELECT backup FROM password WHERE user_id = ?`)
-        .bind(user_id)
+        .bind(user.id)
         .first();
 
       if (passwordRecord) {

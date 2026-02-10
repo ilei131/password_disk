@@ -70,10 +70,8 @@ const CloudLoginDialog: React.FC<CloudLoginDialogProps> = ({
         // 调用同步命令（恢复操作）
         console.log('调用 sync 命令（恢复操作）');
         response = await invoke('sync', {
-          request: {
-            username,
-            password,
-          }
+          username,
+          password
         });
       }
 

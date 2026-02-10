@@ -161,11 +161,13 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
       if (filePath && typeof filePath === 'string') {
         // 读取文件内容
         const content = await readTextFile(filePath);
-
         // 设置恢复内容
         setRestoreContent(content);
-
         setCustomAlert({ isOpen: true, message: t('backup.import_success') });
+        // 恢复成功后返回主页面
+        setTimeout(() => {
+          onBack(true);
+        }, 1000);
       }
     } catch (error) {
       console.error('导入文件失败:', error);

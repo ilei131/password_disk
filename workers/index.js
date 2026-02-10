@@ -31,6 +31,11 @@ const generateId = () => {
   return Date.now();
 };
 
+// 生成user唯一ID
+const generateUserId = () => {
+  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+};
+
 // 主处理函数
 export default {
   async fetch(request, env, ctx) {
@@ -123,7 +128,7 @@ const handleRegister = async (request, db, headers) => {
     }
 
     console.log('开始注册用户:', username);
-    const id = generateId();
+    const id = generateUserId();
     const now = Date.now();
 
     // 生成随机盐

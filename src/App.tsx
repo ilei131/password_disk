@@ -611,7 +611,13 @@ function App() {
     <div className="app">
       {showBackupPage ? (
         // 备份恢复页面
-        <BackupPage onBack={() => setShowBackupPage(false)} />
+        <BackupPage onBack={async (refresh) => {
+          setShowBackupPage(false);
+          if (refresh) {
+            // 从备份页面返回时，重新加载密码和分类数据
+            await loadPasswordsAndCategories();
+          }
+        }} />
       ) : (
         <>
           <header className="app-header">

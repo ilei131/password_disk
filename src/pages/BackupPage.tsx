@@ -10,7 +10,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import './BackupPage.css';
 
 interface BackupPageProps {
-  onBack: () => void;
+  onBack: (refresh: boolean) => void;
 }
 
 const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
@@ -47,7 +47,7 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
 
   // 处理返回操作
   const handleBack = () => {
-    onBack();
+    onBack(false);
   };
 
   // 复制到剪贴板
@@ -93,7 +93,7 @@ const BackupPage: React.FC<BackupPageProps> = ({ onBack }) => {
         setCustomAlert({ isOpen: true, message: t('backup.restore_success') });
         // 恢复成功后返回主页面
         setTimeout(() => {
-          onBack();
+          onBack(true);
         }, 1000);
       } else {
         setCustomAlert({ isOpen: true, message: t('backup.restore_failed') });

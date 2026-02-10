@@ -135,6 +135,7 @@
   },
   "cloud": {
     "register": "Register",
+    "register_success": "Registration successful",
     "login_failed": "Login failed",
     "network_error": "Network error",
     "username": "Username",

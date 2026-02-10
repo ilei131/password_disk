@@ -81,12 +81,12 @@ const CloudLoginDialog: React.FC<CloudLoginDialogProps> = ({
         console.log('操作成功，用户ID:', response.id);
 
         if (isRegistering) {
-          // 注册成功，清除用户输入，显示登录状态，不关闭弹窗
+          // 注册成功，显示登录状态，保留用户名和密码，不关闭弹窗
           console.log('注册成功，切换到登录状态');
-          setUsername('');
-          setPassword('');
+          // 显示注册成功提示
+          setError(t('cloud.register_success'));
+          // 切换到登录状态，但保留用户名和密码
           setIsRegistering(false);
-          setError('');
         } else {
           // 登录或同步成功，关闭对话框并通知登录成功
           console.log('关闭对话框并通知登录成功');

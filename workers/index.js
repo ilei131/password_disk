@@ -148,6 +148,34 @@ const handleRegister = async (request, db, headers) => {
       });
     }
 
+    let user;
+    try {
+      // 查询用户信息，包括密码哈希和盐
+      user = await db.prepare(`SELECT id, password_hash, salt FROM users WHERE username = ?`)
+        .bind(username)
+        .first();
+    } catch (getError) {
+      console.error('数据库查询失败:', getError);
+      return new Response(JSON.stringify({ error: '数据库查询失败' }), {
+        status: 500,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    if (user) {
+      console.log('用户名已存在:', username);
+      return new Response(JSON.stringify({ error: '用户名已存在' }), {
+        status: 409,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
     console.log('执行数据库插入操作');
     try {
       // 尝试使用 prepare 方法

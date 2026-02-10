@@ -42,7 +42,10 @@ pub async fn register(username: String, password: String) -> ApiResponse {
         if password.is_empty() { "空" } else { "******" }
     );
 
-    let client = Client::new();
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(30)) // 增加超时时间到 30 秒
+        .build()
+        .unwrap();
     let url = format!("{}/api/register", BASE_URL);
     println!("API URL: {}", url);
 
@@ -57,6 +60,7 @@ pub async fn register(username: String, password: String) -> ApiResponse {
         }
         Err(e) => {
             println!("网络请求失败: {}", e);
+            println!("错误类型: {:?}", e);
             return ApiResponse {
                 success: false,
                 id: None,
@@ -127,7 +131,10 @@ pub async fn login(username: String, password: String, backup: Option<String>) -
     );
     println!("是否包含备份密码库: {}", backup.is_some());
 
-    let client = Client::new();
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(30)) // 增加超时时间到 30 秒
+        .build()
+        .unwrap();
     let url = format!("{}/api/login", BASE_URL);
     println!("API URL: {}", url);
 
@@ -146,6 +153,7 @@ pub async fn login(username: String, password: String, backup: Option<String>) -
         }
         Err(e) => {
             println!("网络请求失败: {}", e);
+            println!("错误类型: {:?}", e);
             return ApiResponse {
                 success: false,
                 id: None,
@@ -215,11 +223,15 @@ pub async fn sync(username: String, password: String) -> ApiResponse {
         if password.is_empty() { "空" } else { "******" }
     );
 
-    let client = Client::new();
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(30)) // 增加超时时间到 30 秒
+        .build()
+        .unwrap();
     let url = format!("{}/api/sync", BASE_URL);
     println!("API URL: {}", url);
     let request = SyncRequest { username, password };
     println!("请求数据: {:?}", request);
+    println!("发送网络请求...");
     let response = match client.post(&url).json(&request).send().await {
         Ok(res) => {
             println!("网络请求成功，状态码: {}", res.status());
@@ -227,6 +239,7 @@ pub async fn sync(username: String, password: String) -> ApiResponse {
         }
         Err(e) => {
             println!("网络请求失败: {}", e);
+            println!("错误类型: {:?}", e);
             return ApiResponse {
                 success: false,
                 id: None,

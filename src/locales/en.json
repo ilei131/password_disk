@@ -79,7 +79,8 @@
     "copied": "Copied",
     "back": "Back",
     "passwordCopied": "Password copied to clipboard",
-    "copyFailed": "Copy failed, please copy manually"
+    "copyFailed": "Copy failed, please copy manually",
+    "confirm": "Confirm"
   },
   "generator": {
     "title": "Password Generator",

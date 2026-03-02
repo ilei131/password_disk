@@ -16,6 +16,15 @@ npx wrangler d1 execute DB --remote --command "CREATE TABLE IF NOT EXISTS passwo
 ```sql
 npx wrangler deploy
 ```
+# Build
+## debug
+```sql
+npm run tauri dev
+```
+## release
+```sql
+npm run tauri build
+```
 # Screenshot
 ![screenshot](./screenshot.png)
 ![2FA](./2FA.png)

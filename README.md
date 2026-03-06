@@ -25,6 +25,8 @@ npm run tauri dev
 ```sql
 npm run tauri build
 ```
-# Screenshot
-![screenshot](./screenshot.png)
-![2FA](./2FA.png)
+# Screenshots
+![login](./screenshots/login.png)
+![screenshot](./screenshots/screenshot.png)
+![2FA](./screenshots/2FA.png)
+![settings](./screenshots/settings.png)

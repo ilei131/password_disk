@@ -41,4 +41,8 @@ totp-rs = "5.0"
 data-encoding = "2.5"
 reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
 
-
+[profile.release]
+opt-level = "z"     # 优化大小
+lto = true          # 链接时优化
+codegen-units = 1   # 减少代码生成单元
+strip = true        # 移除符号信息

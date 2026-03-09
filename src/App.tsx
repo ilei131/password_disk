@@ -124,6 +124,30 @@ function App() {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    // 我们不再需要全局拖拽事件监听，因为DragDropDetector组件会处理自己的拖拽事件
+    // 隐藏启动画面
+    const hideSplashScreen = () => {
+      const splashScreen = document.getElementById('splash-screen');
+      if (splashScreen) {
+        splashScreen.classList.add('hidden');
+        // 动画完成后移除元素
+        setTimeout(() => {
+          splashScreen.remove();
+        }, 300);
+      }
+    };
+
+    // 延迟一点隐藏启动画面，确保React应用完全渲染
+    const timer = setTimeout(() => {
+      hideSplashScreen();
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
+
   // 验证主密码
   const handleMasterPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
